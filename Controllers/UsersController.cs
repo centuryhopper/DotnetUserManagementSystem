@@ -12,6 +12,7 @@ namespace DotnetUserManagementSystem.Controllers
         {
             this.userManager = userManager;
         }
+        
         public async Task<ActionResult> Index()
         {
             var users = userManager.Users.AsEnumerable().ToList();
