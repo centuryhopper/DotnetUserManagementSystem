@@ -10,17 +10,14 @@ namespace DotnetUserManagementSystem.Controllers;
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-    private readonly UserManager<ApplicationUser> userManager;
 
-    public HomeController(ILogger<HomeController> logger, UserManager<ApplicationUser> userManager)
+    public HomeController(ILogger<HomeController> logger)
     {
         _logger = logger;
-        this.userManager = userManager;
     }
 
     public async Task<IActionResult> Index()
     {
-        var hi = await userManager.Users.ToListAsync();
         
         return View();
     }

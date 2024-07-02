@@ -2,7 +2,7 @@ using DotnetUserManagementSystem.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using DotnetUserManagementSystem.Contexts;
-using Portfolio.Utilities;
+using DotnetUserManagementSystem.Utilities;
 
 namespace DotnetUserManagementSystem.Controllers
 {
@@ -114,7 +114,7 @@ namespace DotnetUserManagementSystem.Controllers
                     Email = vm.Email
                 };
 
-                var roleToCreate = "Admin";
+                var roleToCreate = Constants.USER;
 
                 if (!await roleManager.RoleExistsAsync(roleToCreate))
                 {
@@ -138,9 +138,9 @@ namespace DotnetUserManagementSystem.Controllers
                 // SignInManager and redirect to index action of HomeController
                 if (result.Succeeded)
                 {
-                    if (!await userManager.IsInRoleAsync(user, "Admin"))
+                    if (!await userManager.IsInRoleAsync(user, Constants.USER))
                     {
-                        var addRoleResult = await userManager.AddToRoleAsync(user, "Admin");
+                        var addRoleResult = await userManager.AddToRoleAsync(user, Constants.USER);
                         if (!addRoleResult.Succeeded)
                         {
                             foreach (var error in addRoleResult.Errors)

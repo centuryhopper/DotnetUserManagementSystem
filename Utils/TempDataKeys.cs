@@ -1,5 +1,5 @@
 
-namespace Portfolio.Utilities;
+namespace DotnetUserManagementSystem.Utilities;
 
 public class TempDataKeys
 {

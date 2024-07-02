@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using MimeKit;
 using MailKit.Net.Smtp;
-using DotnetUserManagementSystem.Models;
 
 
-namespace Portfolio.Utilities;
+namespace DotnetUserManagementSystem.Utilities;
 
 public static class Helpers
 {
@@ -59,7 +58,4 @@ public static class Helpers
             client.Dispose();
         }
     }
-
-   
-
 }
