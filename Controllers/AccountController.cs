@@ -22,6 +22,8 @@ namespace DotnetUserManagementSystem.Controllers
             this.roleManager = roleManager;
             this.configuration = configuration;
             this.env = env;
+
+            userManager.
         }
 
         public ActionResult Login()

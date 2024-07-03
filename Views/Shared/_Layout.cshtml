@@ -60,13 +60,15 @@
             </nav>
         </header>
     <div class="container">
-        <main role="main" class="pb-3">
+        <main role="main" class="pb-3" style="position: relative;
+  min-height: 100vh;">
             @RenderBody()
         </main>
     </div>
-    <div id="footer-container" class="footer-special">
+    @* <div id="footer-container" class="footer-special"> *@
+    <div id="footer-container">
         <footer id="fwc-footer">
-            <div class="version-foot-style col-3">
+            <div class="version-foot-style">
                 &copy; @DateTime.Now.Year - UserManagement System
                 <br>
                 All rights reserved.

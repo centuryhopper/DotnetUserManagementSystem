@@ -30,7 +30,7 @@
             @foreach (var (i,role) in roles.Select((role,i) => (i,role)))
             {
                 <tr>
-                    <td>
+                    <td class="row_index">
                         <span>@(i + 1)</span>
                         <input type="hidden" value="@role.Id">
                     </td>
@@ -91,22 +91,28 @@
             $('.Update').click(function() {
                 let row = $(this).closest("tr")
 
-                // get idx value from second column
-                let rowIdx = Number(row.children('td').first().find('span').text().trim())
+                const roleNameInput = row.find('.role_name').find('input')
+                const roleStatusInput = row.find('.role_status').find('input')
+                const roleNameSpan = row.find('.role_name').find('span')
+                const roleStatusSpan = row.find('.role_status').find('span')
+                roleNameInput.hide()
+                roleStatusInput.hide()
+                roleNameSpan.show()
+                roleStatusSpan.show()
 
-                const roleNameInputValue = row.find('.role_name').find('input').val().trim()
-                const roleStatusValue = row.find('.role_status').find('input').val().trim()
-
-                row.find('.role_name').find('span').html(roleNameInputValue)
+                // console.log(row.find("[class^='row_index']").find('input').val().trim());
 
                 var roleModel = {
-                    RoleName: roleNameInputValue
-                    ,IsActive: roleStatusValue.is(':checked')
-                    ,Id: row.children('td').first().find('input').text().trim()
+                    RoleName: roleNameInput.val().trim()
+                    ,IsActive: roleStatusInput.is(':checked')
+                    ,Id: row.find("[class^='row_index']").find('input').val().trim()
                 }
 
+                //console.log(roleModel);
+
                 // visual update
-                row.find('.role_name').find('input')
+                roleNameSpan.html(roleNameInput.val().trim())
+                roleStatusSpan.html(roleStatusInput.is(':checked') ? "Active" : "Inactive")
 
                 // reorganize action buttons for update
                 row.find('.Edit').show()
@@ -121,7 +127,8 @@
                 $.ajax({
                     url: "@Url.Action("UpdateRoleDetail", "Roles")",
                     type: 'POST',
-                    data: roleModel,
+                    data: JSON.stringify(roleModel),
+                    contentType: "application/json",
                     datatype: "json",
                     success: function (res)
                     {
@@ -153,24 +160,32 @@
                 let row = $(this).closest("tr")
 
                 // get the hidden value
-                let roleId = row.children().first().find('input').val().trim()
+                let roleId = row.find("[class^='row_index']").find('input').val().trim()
+                
+                // console.log(roleId);
 
                 // make ajax call to delete that row in the server so we can re-render the page
 
                 $.ajax({
                     url: "@Url.Action("DeleteRole", "Roles")?"+'roleId='+roleId,
                     type: 'POST',
-                    //data: {
-                    //    roleId
-                    //},
-                    datatype: "json",
                     success: function (res)
                     {
                         // console.log(res);
-                        location.reload()
+                        swal.fire("Successfully deleted the role detail!", "", "success")
+                        .then((value) =>
+                        {
+                            location.reload()
+                        });
                     },
                     error: function (req, status, error)
                     {
+                        swal.fire("Failed to delete the role detail :/", "", "error")
+                            .then((value) =>
+                            {
+                                //swal.fire(`The returned value is: ${value}`);
+                                location.reload()
+                            });
                         console.log(req);
                         console.log(status);
                         console.log(error);

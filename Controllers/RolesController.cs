@@ -30,16 +30,25 @@ namespace DotnetUserManagementSystem.Controllers
                 TempData[TempDataKeys.ALERT_ERROR] = string.Join("$$$", errors);
                 return View();
             }
+
             var result = await roleManager.CreateAsync(new ApplicationRole {
                 Name = vm.RoleName,
                 IsActive = vm.IsActive,
             });
+
+            if (!result.Succeeded)
+            {
+                TempData[TempDataKeys.ALERT_ERROR] = string.Join("$$$", result.Errors.Select(e=>e.Description));
+            }
+
+            TempData[TempDataKeys.ALERT_SUCCESS] = $"{vm.RoleName} role has been created.";
             return View();
         }
         
         public async Task<IActionResult> DeleteRole([FromQuery] string roleId)
         {
             var role = await roleManager.FindByIdAsync(roleId);
+            // System.Console.WriteLine(role!.Name);
             var result = await roleManager.DeleteAsync(role!);
 
             if (!result.Succeeded)
