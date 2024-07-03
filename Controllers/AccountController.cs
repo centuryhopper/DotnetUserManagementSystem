@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using DotnetUserManagementSystem.Contexts;
 using DotnetUserManagementSystem.Utilities;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DotnetUserManagementSystem.Controllers
 {
@@ -22,8 +24,62 @@ namespace DotnetUserManagementSystem.Controllers
             this.roleManager = roleManager;
             this.configuration = configuration;
             this.env = env;
+        }
 
-            userManager.
+        [AllowAnonymous]
+        public IActionResult ChangePassword()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPassword(string token, string email)
+        {
+            // If password reset token or email is null, most likely the
+            // user tried to tamper the password reset link
+            if (token == null || email == null)
+            {
+                ModelState.AddModelError("", "Invalid password reset token");
+            }
+
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword(ResetPasswordVM model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await userManager.FindByEmailAsync(model.Email);
+
+                if (user != null)
+                {
+                    var result =
+                        await userManager.ResetPasswordAsync(user, model.Token, model.Password);
+                    if (result.Succeeded)
+                    {
+                        // Upon successful password reset and if the account is lockedout, set
+                        // the account lockout end date to current UTC date time, so the user
+                        // can login with the new password
+                        if (await userManager.IsLockedOutAsync(user))
+                        {
+                            await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow);
+                        }
+                        return View("ResetPasswordConfirmation");
+                    }
+
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError("", error.Description);
+                    }
+                    return View(model);
+                }
+
+                return View("ResetPasswordConfirmation");
+            }
+            return View(model);
         }
 
         public ActionResult Login()
@@ -37,22 +93,25 @@ namespace DotnetUserManagementSystem.Controllers
             if (ModelState.IsValid)
             {
                 var result = await signInManager.PasswordSignInAsync(
-                    vm.Email, vm.Password, vm.RememberMe, false);
+                    vm.Email, vm.Password, vm.RememberMe, lockoutOnFailure: true);
+
+                if (result.IsLockedOut)
+                {
+                    return View("AccountLockout");
+                }
 
                 if (result.Succeeded)
                 {
+                    if (!string.IsNullOrEmpty(returnUrl))
+                    {
+                        return LocalRedirect(returnUrl);
+                    }
                     return RedirectToAction(nameof(HomeController.Index), "Home");
                 }
 
                 // ModelState.AddModelError(string.Empty, "Invalid Login Attempt");
                 TempData[TempDataKeys.ALERT_ERROR] = "Invalid login attempt!";
             }
-
-            if (!string.IsNullOrEmpty(returnUrl))
-            {
-                return LocalRedirect(returnUrl);
-            }
-
             return View(vm);
         }
 
@@ -87,7 +146,6 @@ namespace DotnetUserManagementSystem.Controllers
 
             TempData[TempDataKeys.ALERT_ERROR] = "We couldn't confirm your email.";
             return RedirectToAction(nameof(HomeController.Index), "Home");
-
         }
 
         private async Task<IdentityResult> CreateRole(string roleName)
@@ -177,11 +235,49 @@ namespace DotnetUserManagementSystem.Controllers
                 }
             }
 
-
-
-
             return View(vm);
         }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordVM model)
+        {
+            if (ModelState.IsValid)
+            {
+                // Find the user by email
+                var user = await userManager.FindByEmailAsync(model.Email);
+                // If the user is found AND Email is confirmed
+                if (user != null && await userManager.IsEmailConfirmedAsync(user))
+                {
+                    // Generate the reset password token
+                    var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+                    // Build the password reset link
+                    var passwordResetLink = Url.Action("ResetPassword", "Account",
+                            new { email = model.Email, token = token }, Request.Scheme);
+
+                    // Log the password reset link
+                    // logger.Log(LogLevel.Warning, passwordResetLink);
+
+                    TempData[TempDataKeys.ALERT_SUCCESS] = "If you have an account with us, we have sent an email with the instructions to reset your password.";
+                    return RedirectToAction(nameof(HomeController.Index), "Home");
+                }
+
+                TempData[TempDataKeys.ALERT_SUCCESS] = "If you have an account with us, we have sent an email with the instructions to reset your password.";
+                return RedirectToAction(nameof(HomeController.Index), "Home");
+            }
+
+            TempData[TempDataKeys.ALERT_SUCCESS] = "If you have an account with us, we have sent an email with the instructions to reset your password.";
+            return View(model);
+        }
+
 
         public async Task<ActionResult> Logout()
         {
@@ -189,5 +285,85 @@ namespace DotnetUserManagementSystem.Controllers
             return RedirectToAction(nameof(HomeController.Index), "Home");
         }
 
+        public async Task<IActionResult> Profile()
+        {
+            var myId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var me = await userManager.FindByIdAsync(myId!);
+
+            return View(new ProfileVM
+            {
+                CurrentEmail = me!.Email!,
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Profile(ProfileVM vm)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = Helpers.GetErrors<AccountController>(ModelState);
+                TempData[TempDataKeys.ALERT_ERROR] = string.Join("$$$", errors);
+                return View(vm);
+            }
+
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
+
+            if (!string.IsNullOrEmpty(vm.CurrentEmail) && vm.CurrentEmail.ToLower() != user.Email!.ToLower())
+            {
+                // Change the email
+                var token = await userManager.GenerateChangeEmailTokenAsync(user, vm.CurrentEmail);
+                var result = await userManager.ChangeEmailAsync(user, vm.CurrentEmail, token);
+
+                if (result.Succeeded)
+                {
+                    if (userManager.Options.SignIn.RequireConfirmedEmail)
+                    {
+                        var confirmationToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+                        var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token = confirmationToken }, Request.Scheme);
+
+                        var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+
+                        Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [vm.CurrentEmail]);
+                    }
+                }
+
+                TempData[TempDataKeys.ALERT_SUCCESS] = result.Succeeded ? "Email updated" : "Couldn't update your email";
+                return View(vm);
+            }
+
+
+            if (!string.IsNullOrEmpty(vm.NewPassword))
+            {
+                // ChangePasswordAsync changes the user password
+                var result = await userManager.ChangePasswordAsync(user,
+                    vm.CurrentPassword, vm.NewPassword);
+
+                // The new password did not meet the complexity rules or
+                // the current password is incorrect. Add these errors to
+                // the ModelState and rerender ChangePassword view
+                if (!result.Succeeded)
+                {
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+                    return View(vm);
+                }
+
+                // Upon successfully changing the password refresh sign-in cookie
+                await signInManager.RefreshSignInAsync(user);
+
+                TempData[TempDataKeys.ALERT_SUCCESS] = "We have successfully changed your password!";
+                return View(vm);
+            }
+
+            TempData[TempDataKeys.ALERT_WARNING] = "No changes made";
+
+            return View(vm);
+        }
     }
 }
