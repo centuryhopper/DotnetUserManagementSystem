@@ -212,17 +212,22 @@ namespace DotnetUserManagementSystem.Controllers
                         }
                     }
 
-                    var emailConfirmToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+                    if (userManager.Options.SignIn.RequireConfirmedEmail)
+                    {
+                        var emailConfirmToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
 
-                    var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token = emailConfirmToken }, Request.Scheme);
+                        var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token = emailConfirmToken }, Request.Scheme);
 
-                    var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+                        var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-                    Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [user.Email]);
+                        Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [user.Email]);
 
-                    // await signInManager.SignInAsync(user, isPersistent: false);
-
-                    TempData[TempDataKeys.ALERT_SUCCESS] = "Registration Successful! Please confirm your email to login.";
+                        TempData[TempDataKeys.ALERT_SUCCESS] = "Registration Successful! Please confirm your email to login.";
+                    }
+                    else
+                    {
+                        await signInManager.SignInAsync(user, isPersistent: false);
+                    }
 
                     return RedirectToAction(nameof(HomeController.Index), "Home");
                 }
@@ -247,12 +252,12 @@ namespace DotnetUserManagementSystem.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> ForgotPassword(ForgotPasswordVM model)
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordVM vm)
         {
             if (ModelState.IsValid)
             {
                 // Find the user by email
-                var user = await userManager.FindByEmailAsync(model.Email);
+                var user = await userManager.FindByEmailAsync(vm.Email);
                 // If the user is found AND Email is confirmed
                 if (user != null && await userManager.IsEmailConfirmedAsync(user))
                 {
@@ -261,7 +266,11 @@ namespace DotnetUserManagementSystem.Controllers
 
                     // Build the password reset link
                     var passwordResetLink = Url.Action("ResetPassword", "Account",
-                            new { email = model.Email, token = token }, Request.Scheme);
+                            new { email = vm.Email, token = token }, Request.Scheme);
+
+                    var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+
+                    Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: passwordResetLink, receivers: [vm.Email]);
 
                     // Log the password reset link
                     // logger.Log(LogLevel.Warning, passwordResetLink);
@@ -275,7 +284,7 @@ namespace DotnetUserManagementSystem.Controllers
             }
 
             TempData[TempDataKeys.ALERT_SUCCESS] = "If you have an account with us, we have sent an email with the instructions to reset your password.";
-            return View(model);
+            return View(vm);
         }
 
 
@@ -301,8 +310,8 @@ namespace DotnetUserManagementSystem.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var errors = Helpers.GetErrors<AccountController>(ModelState);
-                TempData[TempDataKeys.ALERT_ERROR] = string.Join("$$$", errors);
+                var modelStateErrors = Helpers.GetErrors<AccountController>(ModelState);
+                TempData[TempDataKeys.ALERT_ERROR] = string.Join("$$$", modelStateErrors);
                 return View(vm);
             }
 
@@ -311,6 +320,9 @@ namespace DotnetUserManagementSystem.Controllers
             {
                 return RedirectToAction("Login");
             }
+
+            List<string> errors = [];
+            List<string> successes = [];
 
             if (!string.IsNullOrEmpty(vm.CurrentEmail) && vm.CurrentEmail.ToLower() != user.Email!.ToLower())
             {
@@ -328,11 +340,18 @@ namespace DotnetUserManagementSystem.Controllers
                         var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
                         Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [vm.CurrentEmail]);
+
+                        successes.Add("Email updated! Please confirm it to login.");
+                    }
+                    else
+                    {
+                        successes.Add("Email updated!");
                     }
                 }
-
-                TempData[TempDataKeys.ALERT_SUCCESS] = result.Succeeded ? "Email updated" : "Couldn't update your email";
-                return View(vm);
+                else
+                {
+                    errors.Add("Couldn't update your email.");
+                }
             }
 
 
@@ -349,19 +368,34 @@ namespace DotnetUserManagementSystem.Controllers
                 {
                     foreach (var error in result.Errors)
                     {
-                        ModelState.AddModelError(string.Empty, error.Description);
+                        // ModelState.AddModelError(string.Empty, error.Description);
+                        errors.Add(error.Description);
                     }
-                    return View(vm);
+
+                    // return View(vm);
                 }
 
                 // Upon successfully changing the password refresh sign-in cookie
                 await signInManager.RefreshSignInAsync(user);
 
-                TempData[TempDataKeys.ALERT_SUCCESS] = "We have successfully changed your password!";
-                return View(vm);
+                // TempData[TempDataKeys.ALERT_SUCCESS] = "We have successfully changed your password!";
+                successes.Add("We have successfully changed your password!");
+                // return View(vm);
             }
 
-            TempData[TempDataKeys.ALERT_WARNING] = "No changes made";
+            if (successes.Any())
+            {
+                TempData[TempDataKeys.ALERT_SUCCESS] = string.Join("$$$", successes);
+            }
+            if (errors.Any())
+            {
+                TempData[TempDataKeys.ALERT_ERROR] = string.Join("$$$", errors);
+            }
+
+            if (errors.Count == 0 && successes.Count == 0)
+            {
+                TempData[TempDataKeys.ALERT_WARNING] = "No changes made";
+            }
 
             return View(vm);
         }

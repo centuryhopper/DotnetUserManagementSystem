@@ -38,7 +38,7 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
-    options.Password.RequiredLength = 10;
+    options.Password.RequiredLength = 7;
     options.Password.RequiredUniqueChars = 3;
     options.Password.RequireNonAlphanumeric = false;
     options.SignIn.RequireConfirmedAccount = true;

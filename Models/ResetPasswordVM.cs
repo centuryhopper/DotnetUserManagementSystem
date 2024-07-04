@@ -15,7 +15,7 @@ public class ResetPasswordVM
 
     [DataType(DataType.Password)]
     [Display(Name = "Confirm password")]
-    [Compare("Password",
+    [Compare(nameof(Password),
         ErrorMessage = "Password and Confirm Password must match")]
     public string ConfirmPassword { get; set; }
 
