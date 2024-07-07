@@ -42,7 +42,7 @@ namespace DotnetUserManagementSystem.Controllers
             }
 
             TempData[TempDataKeys.ALERT_SUCCESS] = $"{vm.RoleName} role has been created.";
-            return View();
+            return RedirectToAction(nameof(Index));
         }
         
         public async Task<IActionResult> DeleteRole([FromQuery] string roleId)

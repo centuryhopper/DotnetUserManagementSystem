@@ -16,7 +16,7 @@
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                     <li>
-                        @Html.ActionLink($"Hello {User.Claims.FirstOrDefault(c=>c.Type == ClaimTypes.Email)?.Value ?? "yo"}!", "EditProfile", "Account", null, new {style="text-decoration: none;", @class="dropdown-item"})
+                        @Html.ActionLink($"Hello {User.Claims.FirstOrDefault(c=>c.Type == ClaimTypes.Email)?.Value ?? "yo"}!", "Profile", "Account", null, new {style="text-decoration: none;", @class="dropdown-item"})
                     </li>
                     <li>
                         <a class="dropdown-item" href="javascript:document.getElementById('logoutForm').submit()">
