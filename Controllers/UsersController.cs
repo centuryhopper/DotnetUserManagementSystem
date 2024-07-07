@@ -7,6 +7,7 @@ namespace DotnetUserManagementSystem.Controllers
     public class UsersController : Controller
     {
         private readonly UserManager<ApplicationUser> userManager;
+        //Server=ep-shy-boat-a5z9pcbn.us-east-2.aws.neon.tech;Database=UserManagement;User Id=neondb_owner;Password=NSFWkL9Zwb6f;Port=5432
 
         public UsersController(UserManager<ApplicationUser> userManager)
         {
