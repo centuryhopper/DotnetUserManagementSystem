@@ -6,6 +6,7 @@ using DotnetUserManagementSystem.Contexts;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using Microsoft.AspNetCore.Session;
+using Microsoft.AspNetCore.Authentication;
 
 namespace DotnetUserManagementSystem.Controllers;
 

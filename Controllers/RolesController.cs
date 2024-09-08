@@ -1,4 +1,5 @@
 using DotnetUserManagementSystem.Contexts;
+using DotnetUserManagementSystem.Entities;
 using DotnetUserManagementSystem.Models;
 using DotnetUserManagementSystem.Utilities;
 using Microsoft.AspNetCore.Authorization;

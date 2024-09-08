@@ -5,6 +5,7 @@ using DotnetUserManagementSystem.Contexts;
 using DotnetUserManagementSystem.Utilities;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using DotnetUserManagementSystem.Entities;
 
 namespace DotnetUserManagementSystem.Controllers
 {
@@ -292,6 +293,11 @@ namespace DotnetUserManagementSystem.Controllers
         {
             await signInManager.SignOutAsync();
             return RedirectToAction(nameof(HomeController.Index), "Home");
+        }
+
+        public IActionResult AccessDenied()
+        {
+            return View();
         }
 
         public async Task<IActionResult> Profile()

@@ -1,7 +1,7 @@
 
 using Microsoft.AspNetCore.Identity;
 
-namespace DotnetUserManagementSystem.Contexts;
+namespace DotnetUserManagementSystem.Entities;
 
 public class ApplicationRole : IdentityRole
 {

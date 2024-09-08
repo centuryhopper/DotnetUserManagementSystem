@@ -2,12 +2,14 @@
 
 /*
 
-dotnet ef dbcontext scaffold "" Npgsql.EntityFrameworkCore.PostgreSQL -o Contexts
+dotnet ef migrations add InitialIdentityCreate -c UserManagementContext
+dotnet ef database update -c UserManagementContext
 */
 
 using Microsoft.AspNetCore.Identity;
 using DotnetUserManagementSystem.Contexts;
 using Microsoft.EntityFrameworkCore;
+using DotnetUserManagementSystem.Entities;
 
 TimeSpan sessionExpiration = TimeSpan.FromHours(1);
 
@@ -17,6 +19,7 @@ builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = sessionExpiration;
+
 });
 
 // Add services to the container.
@@ -44,6 +47,10 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.SignIn.RequireConfirmedAccount = true;
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+});
+
+builder.Services.ConfigureApplicationCookie(options => {
+    options.AccessDeniedPath = new PathString("/Account/AccessDenied");
 });
 
 if (!builder.Environment.IsDevelopment())
