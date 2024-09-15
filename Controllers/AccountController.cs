@@ -142,6 +142,9 @@ namespace DotnetUserManagementSystem.Controllers
             if (result.Succeeded)
             {
                 TempData[TempDataKeys.ALERT_SUCCESS] = "The email has been successfully confirmed!";
+                user.UserName = user.Email;
+                user.NormalizedUserName = user.UserName.ToUpper();
+                await userManager.UpdateAsync(user);
                 return RedirectToAction(nameof(HomeController.Index), "Home");
             }
 
@@ -336,6 +339,8 @@ namespace DotnetUserManagementSystem.Controllers
                 var token = await userManager.GenerateChangeEmailTokenAsync(user, vm.CurrentEmail);
                 var result = await userManager.ChangeEmailAsync(user, vm.CurrentEmail, token);
 
+                bool emailChanged = false;
+
                 if (result.Succeeded)
                 {
                     if (userManager.Options.SignIn.RequireConfirmedEmail)
@@ -351,6 +356,7 @@ namespace DotnetUserManagementSystem.Controllers
                     }
                     else
                     {
+                        emailChanged = true;
                         successes.Add("Email updated!");
                     }
                 }
@@ -358,7 +364,15 @@ namespace DotnetUserManagementSystem.Controllers
                 {
                     errors.Add("Couldn't update your email.");
                 }
+
+                if (emailChanged)
+                {
+                    user.UserName = user.Email;
+                    user.NormalizedUserName = user.UserName.ToUpper();
+                    await userManager.UpdateAsync(user);
+                }
             }
+
 
 
             if (!string.IsNullOrEmpty(vm.NewPassword))
