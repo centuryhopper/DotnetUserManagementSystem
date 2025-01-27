@@ -1,0 +1,14 @@
+
+using Microsoft.AspNetCore.Identity;
+using Server.Entities;
+using Shared.Models;
+using static Shared.Models.ServiceResponses;
+
+
+public interface IRolesRepository
+{
+    Task<IEnumerable<RoleDTO>> GetRolesAsync(RoleDTO dto);
+    Task<GeneralResponse> AddRoleAsync(RoleDTO dto);
+    Task<GeneralResponse> EditRoleAsync(RoleDTO dto);
+    Task<GeneralResponse> DeleteRoleAsync(string roleId);
+}
