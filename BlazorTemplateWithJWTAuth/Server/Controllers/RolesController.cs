@@ -4,13 +4,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Models;
+using static Shared.Models.ServiceResponses;
 
 namespace Server.Controllers;
 
 [Authorize(Roles = Constants.ADMIN)]
 [Route("api/[controller]")]
 [ApiController]
-public class RolesController(IAccountRepository accountRepository, ILogger<RolesController> logger) : ControllerBase
+public class RolesController(IRolesRepository rolesRepository, ILogger<RolesController> logger) : ControllerBase
 {
     [HttpGet("nlog-test")]
     public IActionResult Test()
@@ -26,25 +27,69 @@ public class RolesController(IAccountRepository accountRepository, ILogger<Roles
     [HttpGet("get-roles")]
     public async Task<IActionResult> GetRoles()
     {
-        return Ok();
+        try
+        {
+            var response = await rolesRepository.GetRolesAsync();
+            return Ok(response);
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(new GeneralResponse(false, ex.Message));
+        }
     }
 
     [HttpPost("add-role")]
     public async Task<IActionResult> AddRole([FromBody] RoleDTO dto)
     {
-        return Ok();
+        try
+        {
+            var response = await rolesRepository.AddRoleAsync(dto);
+            if (!response.Flag)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(new GeneralResponse(false, ex.Message));
+        }
     }
 
     [HttpPut("edit-role")]
     public async Task<IActionResult> EditRole([FromBody] RoleDTO dto)
     {
-        return Ok();
+        try
+        {
+            var response = await rolesRepository.EditRoleAsync(dto);
+            if (!response.Flag)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(new GeneralResponse(false, ex.Message));
+        }
     }
 
     [HttpDelete("delete-role/{roleId}")]
     public async Task<IActionResult> DeleteRole(string roleId)
     {
-        return Ok();
+        try
+        {
+            var response = await rolesRepository.DeleteRoleAsync(roleId);
+            if (!response.Flag)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(new GeneralResponse(false, ex.Message));
+        }
     }
 
    

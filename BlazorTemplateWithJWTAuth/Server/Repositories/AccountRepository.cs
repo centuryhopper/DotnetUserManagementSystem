@@ -64,7 +64,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
         return new GeneralResponse(Flag: true, Message: "role created!");
     }
 
-    public async Task<GeneralResponse> EditProfileAsync(ProfileDTO dto, string confirmationLink)
+    public async Task<GeneralResponse> EditProfileAsync(ProfileDTO dto)
     {
         var user = await userManager.FindByIdAsync(dto.Id);
         if (user == null)
@@ -88,6 +88,8 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
                 if (userManager.Options.SignIn.RequireConfirmedEmail)
                 {
                     var confirmationToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                    var confirmationLink = (webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/confirm-email?userId={user.Id}&token={confirmationToken}";
 
                     var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
@@ -149,7 +151,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
         return new GeneralResponse(Flag: true, Message: "no changes made");
     }
 
-    public async Task<GeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto, string passwordResetLink)
+    public async Task<GeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto)
     {
         // Find the user by email
         var user = await userManager.FindByEmailAsync(dto.Email);
@@ -159,6 +161,8 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
         {
             // Generate the reset password token
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+            var passwordResetLink = (webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/reset-password?userId={user.Id}&token={token}";
 
             var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
@@ -196,7 +200,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
         return new LoginResponse(true, token!, "Login completed");
     }
 
-    public async Task<GeneralResponse> RegisterAsync(RegisterDTO dto, string confirmationLink)
+    public async Task<GeneralResponse> RegisterAsync(RegisterDTO dto)
     {
         // Copy data from RegisterViewModel to IdentityUser
         var user = new ApplicationUser
@@ -235,6 +239,8 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
             if (userManager.Options.SignIn.RequireConfirmedEmail)
             {
                 var emailConfirmToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                var confirmationLink = (webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/confirm-email?userId={user.Id}&token={emailConfirmToken}";
 
                 var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 

@@ -14,7 +14,7 @@ namespace Server.Repositories;
 
 public class UsersRepository(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager) : IUsersRepository
 {
-    public async Task<IEnumerable<UserDTO>> GetUsersAsync(UserDTO dto)
+    public async Task<IEnumerable<UserDTO>> GetUsersAsync()
     {
         var users = await userManager.Users.ToListAsync();
         Dictionary<string, List<string>> userRoles = new();

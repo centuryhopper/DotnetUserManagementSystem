@@ -7,5 +7,5 @@ using static Shared.Models.ServiceResponses;
 
 public interface IUsersRepository
 {
-    Task<IEnumerable<UserDTO>> GetUsersAsync(UserDTO dto);
+    Task<IEnumerable<UserDTO>> GetUsersAsync();
 }

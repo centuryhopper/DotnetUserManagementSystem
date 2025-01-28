@@ -4,13 +4,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Models;
+using static Shared.Models.ServiceResponses;
 
 namespace Server.Controllers;
 
 [Authorize(Roles = Constants.ADMIN)]
 [Route("api/[controller]")]
 [ApiController]
-public class UsersController(IAccountRepository accountRepository, ILogger<UsersController> logger) : ControllerBase
+public class UsersController(IUsersRepository usersRepository, ILogger<UsersController> logger) : ControllerBase
 {
     [HttpGet("nlog-test")]
     public IActionResult Test()
@@ -23,10 +24,18 @@ public class UsersController(IAccountRepository accountRepository, ILogger<Users
         return Ok("Logging test completed. Check your PostgreSQL LOGS table.");
     }
 
+
     public async Task<IActionResult> GetUsers()
     {
-        return Ok();
+        try
+        {
+            var response = await usersRepository.GetUsersAsync();
+            return Ok(response);
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(new GeneralResponse(false, ex.Message));
+        }
     }
 
-   
 }

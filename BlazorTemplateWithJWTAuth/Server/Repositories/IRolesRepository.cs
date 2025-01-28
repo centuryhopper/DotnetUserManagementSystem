@@ -7,7 +7,7 @@ using static Shared.Models.ServiceResponses;
 
 public interface IRolesRepository
 {
-    Task<IEnumerable<RoleDTO>> GetRolesAsync(RoleDTO dto);
+    Task<IEnumerable<RoleDTO>> GetRolesAsync();
     Task<GeneralResponse> AddRoleAsync(RoleDTO dto);
     Task<GeneralResponse> EditRoleAsync(RoleDTO dto);
     Task<GeneralResponse> DeleteRoleAsync(string roleId);

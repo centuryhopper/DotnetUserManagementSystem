@@ -59,7 +59,7 @@ public class RolesRepository(UserManager<ApplicationUser> userManager, RoleManag
 
     }
 
-    public async Task<IEnumerable<RoleDTO>> GetRolesAsync(RoleDTO dto)
+    public async Task<IEnumerable<RoleDTO>> GetRolesAsync()
     {
         return await roleManager.Roles.Select(r => new RoleDTO {
             Id = r.Id,
