@@ -47,6 +47,8 @@ using Swashbuckle.AspNetCore.Filters;
     });
 
     builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+    builder.Services.AddScoped<IRolesRepository, RolesRepository>();
+    builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 
     // Configure the Identity database context
     builder.Services.AddDbContext<UserManagementContext>(options =>

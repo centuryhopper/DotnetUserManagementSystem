@@ -1,25 +1,34 @@
-@page "/login"
+@page "/register"
 @using Microsoft.AspNetCore.Components.Forms
 @inject IAccountService accountService
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory httpClientFactory
 
-
 <div class="container-fluid">
     <EditForm Model="@dto" OnValidSubmit="HandleSubmit">
         <div class="card">
-            <h4 class="card-header">Login</h4>
+            <h4 class="card-header">Register</h4>
             <div class="card-body">
                 <DataAnnotationsValidator />
                 <p class="form-group">
-                    <label for="email">Email</label>
-                    <InputText id="email" class="form-control" @bind-Value="dto.Email" />
+                    <label for="FirstName">First Name</label>
+                    <InputText id="FirstName" class="form-control" @bind-Value="dto.FirstName" aria-placeholder="First Name" />
+                    <ValidationMessage For="@(() => dto.FirstName)" />
+                </p>
+                <p class="form-group">
+                    <label for="LastName">Last Name</label>
+                    <InputText id="LastName" class="form-control" @bind-Value="dto.LastName" aria-placeholder="Last Name"/>
+                    <ValidationMessage For="@(() => dto.LastName)" />
+                </p>
+                <p class="form-group">
+                    <label for="Email">Email</label>
+                    <InputText id="Email" class="form-control" @bind-Value="dto.Email" />
                     <ValidationMessage For="@(() => dto.Email)" />
                 </p>
                 <p class="form-group">
-                    <label for="password">Password</label>
+                    <label for="Password">Password</label>
                     <div class="input-group" id="show_hide_password">
-                    <InputText id="password" class="form-control" @bind-Value="dto.Password" type="@passwordType" />
+                        <InputText id="Password" class="form-control" @bind-Value="dto.Password" type="@passwordType" />
                         <div class="input-group-append">
                             <div class="input-group-addon">
                                 <span class="input-group-text">
@@ -32,22 +41,33 @@
                     </div>
                     <ValidationMessage For="@(() => dto.Password)" />
                 </p>
+
+                <p class="form-group">
+                    <label for="ConfirmPassword">Confirm Password</label>
+                    <div class="input-group" id="show_hide_password">
+                        <InputText id="ConfirmPassword" class="form-control" @bind-Value="dto.ConfirmPassword" type="@passwordType" />
+                        <div class="input-group-append">
+                            <div class="input-group-addon">
+                                <span class="input-group-text">
+                                    <a 
+                                    @onclick="@((m)=> TogglePasswordVisibility(m))"@onkeypress="TogglePasswordVisibility" @onkeypress:preventDefault="true" tabindex="0" style="color: black; cursor: pointer;">
+                                        <i class="fa @iconClass field-icon m-1" aria-hidden="true"></i></a>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <ValidationMessage For="@(() => dto.ConfirmPassword)" />
+                </p>
             </div>
         </div>
         <div class="m-3">
-            <p class="form-check m-3">
-                <input class="form-check-input" @bind="dto.RememberMe" type="checkbox" id="flexCheckDefault">
-                <label class="form-check-label" for="flexCheckDefault">
-                    Remember Me
-                </label>
-            </p>
             <p class="m-3">
                 <button disabled="@loading" class="btn btn-primary">
                     @if (loading)
                     {
                         <span class="spinner-border spinner-border-sm mr-1"></span>
                     }
-                    Login
+                    Register
                 </button>
                 @if (!string.IsNullOrWhiteSpace(errMsg))
                 {
@@ -60,29 +80,21 @@
     </EditForm>
 </div>
 <div class="text-center">
-    <p>Forgot Password?
-        <a href="forgot-password" target="_blank"
+    <p>Already have an account?
+        <a href="login" target="_blank"
             rel="noopener noreferrer">
-            Reset Password
+            Sign In
         </a>
-    </p>
-    <p>Don't have an account?
-        <a href="register" target="_blank"
-            rel="noopener noreferrer">
-            Register as a new user
-        </a>
-    </p>
-
-    <p style="font-weight: bold;">
-        To request your account to be deleted, please email me at vincenteri321@gmail.com
     </p>
 </div>
 
+<NotificationModal @ref="notificationModal" />
 <CooldownTimer @ref="cooldownTimer" CooldownTime="30" MaxAttempts="5" OnCooldownComplete="OnCooldownComplete" />
 
 @code {
+    private NotificationModal notificationModal = default!;
     private CooldownTimer cooldownTimer = default!;
-    private LoginDTO dto = new();
+    private RegisterDTO dto = new();
     private bool isPasswordVisible = false;
     private string passwordType => isPasswordVisible ? "text" : "password";
     private string iconClass => isPasswordVisible ? "fa-eye" : "fa-eye-slash";
@@ -125,21 +137,20 @@
         errMsg = ""; // Clear any previous error messages
 
         // Handle login logic here
-        //Console.WriteLine("showing modal");
-        var response = await accountService.LoginAsync(dto);
+        // Console.WriteLine("showing modal");
+        var response = await accountService.RegisterAsync(dto);
         loading = false;
         if (!response.Flag)
         {
             cooldownTimer.IncrementSubmissionCount();
-            //notificationModal.Show("Error", response.Message, ModalType.ERROR);
-            //Console.WriteLine(response.Message);
             if (!cooldownTimer.IsCoolingDown)
             {
                 errMsg = response.Message;
             }
             return;
         }
-        NavigationManager.NavigateTo("parsed-claims", true);
+
+        NavigationManager.NavigateTo("login", true);
     }
     private async Task HandleErrors()
     {

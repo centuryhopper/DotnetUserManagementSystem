@@ -28,12 +28,12 @@ public class AccountService : IAccountService
         this.sessionStorageService = sessionStorageService;
     }
 
-    public async Task<LoginResponse> LoginAsync(LoginDTO loginDTO)
+    public async Task<LoginResponse> LoginAsync(LoginDTO dto)
     {
         try
         {
             //System.Console.WriteLine("logging in");
-            var response = await httpClient.PostAsJsonAsync("api/Account/login", loginDTO);
+            var response = await httpClient.PostAsJsonAsync("api/Account/login", dto);
             var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
             if (!response.IsSuccessStatusCode)
             {
@@ -41,10 +41,10 @@ public class AccountService : IAccountService
             }
             if (string.IsNullOrWhiteSpace(loginResponse.Token))
             {
-                throw new Exception("Couldn't get a token");
+                throw new Exception(loginResponse.Message);
             }
 
-            if (loginDTO.RememberMe)
+            if (dto.RememberMe)
             {
                 await localStorageService.SetItemAsync("authToken", loginResponse!.Token);
             }
@@ -58,7 +58,7 @@ public class AccountService : IAccountService
 
             return loginResponse!;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             return new LoginResponse(Flag: false, Token: "", Message: ex.Message);
         }
@@ -70,5 +70,43 @@ public class AccountService : IAccountService
         await sessionStorageService.RemoveItemAsync("authToken");
         ((ApiAuthenticationStateProvider)authenticationStateProvider).MarkUserAsLoggedOut();
         httpClient.DefaultRequestHeaders.Authorization = null;
+    }
+
+    public async Task<GeneralResponse> RegisterAsync(RegisterDTO dto)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("api/Account/register", dto);
+            var registerResponse = await response.Content.ReadFromJsonAsync<GeneralResponse>();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(registerResponse!.Message);
+            }
+
+            return new GeneralResponse(true, registerResponse!.Message);
+        }
+        catch (Exception ex)
+        {
+            return new GeneralResponse(false, ex.Message);
+        }
+    }
+
+    public async Task<GeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("api/Account/forgot-password", dto);
+            var forgotPasswordResponse = await response.Content.ReadFromJsonAsync<GeneralResponse>();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(forgotPasswordResponse!.Message);
+            }
+
+            return new GeneralResponse(true, forgotPasswordResponse!.Message);
+        }
+        catch (Exception ex)
+        {
+            return new GeneralResponse(false, ex.Message);
+        }
     }
 }

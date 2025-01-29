@@ -1,4 +1,3 @@
-
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -14,8 +13,23 @@ namespace Server.Repositories;
 
 public class RolesRepository(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, IConfiguration configuration, IWebHostEnvironment webHostEnvironment) : IRolesRepository
 {
+    public async Task<IEnumerable<GeneralResponse>> AddRolesAsync(IEnumerable<RoleDTO> dtos)
+    {
+        List<GeneralResponse> responses = [];
+        foreach (var dto in dtos)
+        {
+            responses.Add(await AddRoleAsync(dto));
+        }
+        return responses;
+    }
+
     public async Task<GeneralResponse> AddRoleAsync(RoleDTO dto)
     {
+        if (await roleManager.RoleExistsAsync(dto.RoleName))
+        {
+            return new GeneralResponse(Flag: false, Message: $"role {dto.RoleName} already exists");
+        }
+
         var result = await roleManager.CreateAsync(new ApplicationRole {
             Name = dto.RoleName,
             IsActive = dto.IsActive,
@@ -26,7 +40,7 @@ public class RolesRepository(UserManager<ApplicationUser> userManager, RoleManag
             return new GeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e=>e.Description)));
         }
 
-        return new GeneralResponse(Flag: false, Message: $"{dto.RoleName} role has been created.");
+        return new GeneralResponse(Flag: true, Message: $"{dto.RoleName} role has been created.");
     }
 
     public async Task<GeneralResponse> DeleteRoleAsync(string roleId)
@@ -55,7 +69,7 @@ public class RolesRepository(UserManager<ApplicationUser> userManager, RoleManag
             return new GeneralResponse(Flag: false, Message: "failed to edit role");
         }
 
-        return new GeneralResponse(Flag: false, Message: "role edited!");
+        return new GeneralResponse(Flag: true, Message: "role edited!");
 
     }
 

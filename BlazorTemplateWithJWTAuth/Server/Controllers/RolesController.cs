@@ -38,6 +38,20 @@ public class RolesController(IRolesRepository rolesRepository, ILogger<RolesCont
         }
     }
 
+    [HttpPost("add-roles")]
+    public async Task<IActionResult> AddRoles([FromBody] IEnumerable<RoleDTO> dtos)
+    {
+        try
+        {
+            var response = await rolesRepository.AddRolesAsync(dtos);
+            return Ok(response);
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(new GeneralResponse(false, ex.Message));
+        }
+    }
+
     [HttpPost("add-role")]
     public async Task<IActionResult> AddRole([FromBody] RoleDTO dto)
     {
@@ -56,7 +70,7 @@ public class RolesController(IRolesRepository rolesRepository, ILogger<RolesCont
         }
     }
 
-    [HttpPut("edit-role")]
+    [HttpPatch("edit-role")]
     public async Task<IActionResult> EditRole([FromBody] RoleDTO dto)
     {
         try

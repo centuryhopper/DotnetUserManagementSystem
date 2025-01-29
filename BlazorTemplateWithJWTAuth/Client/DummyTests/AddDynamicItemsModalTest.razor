@@ -1,0 +1,221 @@
+@using HandyBlazorComponents.Abstracts
+@typeparam TItem where TItem : class, new()
+@typeparam TEntity where TEntity : HandyGridEntityAbstract<TItem>, new()
+
+@if (isVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="display: block; background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog" style="max-width: 90%; max-height: 50%;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="Cancel"></button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        Add Items to Your Collection
+                    </p>
+                    <div style="overflow: auto; hyphens: auto;" class="p-1">
+                        <button class="btn btn-primary mt-3 mb-3" @onclick="AddItem">Add New Item</button>
+                        @if (ItemsToAdd.Any())
+                        {
+                            <table class="table-bordered table-striped table-hover table-sm text-center" style="max-width: 90%;">
+                                <thead>
+                                    <tr>
+                                        @foreach (var column in Columns)
+                                        {
+                                            <th>
+                                                @column
+                                            </th>
+                                        }
+                                        <th>
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < ItemsToAdd.Count; i++)
+                                    {
+                                        @* need to set cur to i to avoid index out of bounds error *@
+                                        int rowIdx = i;
+                                        <tr>
+                                            @foreach (var (columnIdx, columnName) in Columns.Select((columnName, columnIdx) => (columnIdx, columnName)))
+                                            {
+                                                <td>
+                                                    @if (HandyGridState.EditModeFragments != null && HandyGridState.EditModeFragments.FirstOrDefault(x=>x.Name == columnName) != null)
+                                                    {
+                                                        var template = HandyGridState.EditModeFragments.First(x=>x.Name == columnName);
+                                                        <div class="d-flex align-items-center p-3">
+                                                            @(template.Fragment(ItemsToAdd[rowIdx]))
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="d-flex align-items-center p-3">
+                                                            @* <input value="@(GetPropertyValue(ItemsToAdd[rowIdx].Object, columnName))"
+                                                                @oninput="(e) => SetPropertyValue(ItemsToAdd[rowIdx].Object, e.Value, columnName)" class="form-control"
+                                                                style="width: 10rem" /> *@
+                                                            @* <input value="@(ItemsToAdd[rowIdx].GetPropertyValue(columnName))"
+                                                                @oninput="(e) => SetPropertyValue(ItemsToAdd[rowIdx].Object, e.Value, columnName)" class="form-control"
+                                                                style="width: 10rem" /> *@
+                                                            <input value="@(ItemsToAdd[rowIdx].GetPropertyValue(columnName))"
+                                                            @oninput="(e) => ItemsToAdd[rowIdx].SetPropertyValue(columnName, e.Value)" class="form-control"
+                                                            style="width: 10rem" />
+                                                        </div>
+                                                    }
+                                                    <span class="text-danger">@ErrorMessages[rowIdx,columnIdx]</span>
+                                                </td>
+                                            }
+                                            <td>
+                                                <button type="button" class="btn btn-danger" @onclick="(() => RemoveItem(ItemsToAdd[rowIdx]))">Remove</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmChanges">Confirm Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@code {
+
+
+
+    private bool isVisible = false;
+    private TaskCompletionSource<List<TEntity>> taskCompletionSource = default!;
+    private List<TEntity> ItemsToAdd {get;set;} = new();
+
+    [Parameter]
+    public string Title { get; set; } = "Items To Add";
+
+    [CascadingParameter(Name = nameof(HandyGridState))]
+    public HandyGridStateAbstract<TEntity, TItem> HandyGridState { get; set; }
+
+    private string[,] _errorMessages;
+
+    private string[,] ErrorMessages
+    {
+        get
+        {
+            if (_errorMessages == null || _errorMessages.GetLength(0) != ItemsToAdd.Count || _errorMessages.GetLength(1) != (Columns?.Count ?? 0))
+            {
+                _errorMessages = new string[ItemsToAdd.Count, Columns?.Count ?? 0];
+            }
+            return _errorMessages;
+        }
+        set => _errorMessages = value;
+    }
+
+    private List<string>? Columns { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // remove readonly columns from your columns
+        Columns = HandyGridState.Columns
+        .Except(HandyGridState.ReadonlyColumns)
+        //.Except(HandyGridState.ColumnsToHide)
+        .ToList();
+    }
+
+    private void AddItem()
+    {
+        TEntity item = new();
+        ItemsToAdd.Add(item);
+    }
+
+    //private object? GetPropertyValue(TItem item, string propertyName)
+    //{
+    //    //Console.WriteLine(item);
+    //    return typeof(TItem).GetProperty(propertyName)?.GetValue(item);
+    //}
+
+    //private void SetPropertyValue(TItem item, object? value, string propertyName)
+    //{
+    //    var property = typeof(TItem).GetProperty(propertyName);
+    //    if (property != null && property.CanWrite && value != null)
+    //    {
+    //        property.SetValue(item, Convert.ChangeType(value, property.PropertyType));
+    //    }
+    //}
+
+    private void RemoveItem(TEntity entity)
+    {
+        ItemsToAdd.Remove(entity);
+    }
+
+    public Task<List<TEntity>> ShowAsync()
+    {
+        isVisible = true;
+        taskCompletionSource = new TaskCompletionSource<List<TEntity>>();
+        StateHasChanged();
+        return taskCompletionSource.Task;
+    }
+
+    private void ConfirmChanges()
+    {
+        // find out rows that have errors
+        foreach (var (rowIdx, item) in ItemsToAdd.Select((item, rowIdx) => (rowIdx, item)))
+        {
+            var validation = HandyGridState.ValidationChecks(item);
+            //Console.WriteLine(validation.ColumnIndex);
+            if (!validation.Flag)
+            {
+                // reset
+                // getlength(1) returns number of columns
+                // getlength(0) returns number of rows
+                for (var columnIdx = 0;columnIdx < ErrorMessages.GetLength(1);columnIdx++)
+                {
+                    ErrorMessages[rowIdx, columnIdx] = "";
+                }
+
+                // show errors
+                foreach (var kvp in validation.ErrorMessagesDict)
+                {
+
+                    //Console.WriteLine(kvp.Key);
+                    int colIdx = Columns.IndexOf(kvp.Key);
+                    if (colIdx == -1)
+                        continue;
+                    ErrorMessages[rowIdx, colIdx] = string.Join(",", kvp.Value);
+                }
+            }
+            else
+            {
+                for (var columnIdx = 0;columnIdx < ErrorMessages.GetLength(1);columnIdx++)
+                {
+                    ErrorMessages[rowIdx, columnIdx] = "";
+                }
+            }
+        }
+
+        // checks if any of the cells still has errors
+        if (ErrorMessages.Cast<string>().Any(errMsg => !string.IsNullOrWhiteSpace(errMsg)))
+        {
+            return;
+        }
+
+        isVisible = false;
+
+        //ItemsToAdd = ItemsToAdd.Where(item => ValidationChecks(item).Flag).ToList();
+        taskCompletionSource?.SetResult(ItemsToAdd);
+        ItemsToAdd.Clear();
+        StateHasChanged();
+    }
+
+    private void Cancel()
+    {
+        isVisible = false;
+        taskCompletionSource?.SetResult(new());
+        StateHasChanged();
+    }
+}
