@@ -9,6 +9,7 @@ using static Shared.Models.ServiceResponses;
 namespace Server.Controllers;
 
 
+[Authorize(Roles = Shared.Constants.ADMIN)]
 [Route("api/[controller]")]
 [ApiController]
 public class UsersController(IUsersRepository usersRepository, ILogger<UsersController> logger) : ControllerBase
@@ -37,7 +38,6 @@ public class UsersController(IUsersRepository usersRepository, ILogger<UsersCont
 
 
 
-    // [Authorize(Roles = "Admin")]
     [HttpGet("get-users")]
     public async Task<IActionResult> GetUsers()
     {
