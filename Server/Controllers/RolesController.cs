@@ -8,7 +8,7 @@ using static Shared.Models.ServiceResponses;
 
 namespace Server.Controllers;
 
-[Authorize(Roles = Constants.ADMIN)]
+[Authorize(Roles = Shared.Constants.ADMIN)]
 [Route("api/[controller]")]
 [ApiController]
 public class RolesController(IRolesRepository rolesRepository, ILogger<RolesController> logger) : ControllerBase
