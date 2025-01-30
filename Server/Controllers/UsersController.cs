@@ -25,7 +25,7 @@ public class UsersController(IUsersRepository usersRepository, ILogger<UsersCont
     }
 
 
-    [Authorize(Roles = Constants.ADMIN)]
+    // [Authorize(Roles = Constants.ADMIN)]
     [HttpGet("get-users")]
     public async Task<IActionResult> GetUsers()
     {
