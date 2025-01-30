@@ -24,11 +24,24 @@ public class UsersController(IUsersRepository usersRepository, ILogger<UsersCont
         return Ok("Logging test completed. Check your PostgreSQL LOGS table.");
     }
 
+    [HttpGet("get-claims")]
+    public IActionResult Claims()
+    {
+        var user = User;
 
-    [Authorize(Roles = "Admin")]
+        return Ok(user.Claims.Select(c => new {
+            key = c.Type,
+            value = c.Value,
+        }));
+    }
+
+
+
+    // [Authorize(Roles = "Admin")]
     [HttpGet("get-users")]
     public async Task<IActionResult> GetUsers()
     {
+        var user = User;
         try
         {
             var response = await usersRepository.GetUsersAsync();
