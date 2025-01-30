@@ -1,6 +1,8 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -100,6 +102,24 @@ using Swashbuckle.AspNetCore.Filters;
         builder.WebHost.UseUrls($"http://*:{port}");
     }
 
+    // add rate limits
+    builder.Services.AddRateLimiter(options => {
+        options.AddFixedWindowLimiter("FixedPolicy", options => {
+            options.PermitLimit = 5;
+            options.Window = TimeSpan.FromSeconds(30);
+            // options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            options.QueueLimit = 0;
+        });
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        
+        // for mvc apps:
+        // options.OnRejected = (ctx, token) => {
+        //     ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        //     ctx.HttpContext.Response.WriteAsync("no more than one call every 5 seconds!");
+        //     return ValueTask.CompletedTask;
+        // };
+    });
+
     var app = builder.Build();
 
     // Configure the HTTP request pipeline.
@@ -114,6 +134,10 @@ using Swashbuckle.AspNetCore.Filters;
     app.UseBlazorFrameworkFiles();
     app.UseStaticFiles();
     app.UseRouting();
+
+    // MUST be after app.userouting
+    // https://github.com/dotnet/aspnetcore/issues/45302
+    app.UseRateLimiter();
 
     app.UseAuthentication();
     app.UseAuthorization();
