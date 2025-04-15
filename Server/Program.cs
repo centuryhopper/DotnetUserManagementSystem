@@ -19,6 +19,8 @@ using Swashbuckle.AspNetCore.Filters;
 
 /*
 
+TODO: Add session timer component to UMS App
+
 IMPORTANT:
 
 - If changes are made to either applicationuser or applicationrole (i.e. new property added or taken away), then run the following commands in the cli:

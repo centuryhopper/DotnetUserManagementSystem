@@ -331,7 +331,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
             issuer: webHostEnvironment.IsDevelopment() ? configuration["Jwt:Issuer"] : Environment.GetEnvironmentVariable("Jwt_Issuer"),
             audience: webHostEnvironment.IsDevelopment() ? configuration["Jwt:Audience"] : Environment.GetEnvironmentVariable("Jwt_Audience"),
             claims: userClaims,
-            expires: DateTime.Now.AddDays(1),
+            expires: JwtConfig.JWT_TOKEN_EXP_DATETIME,
             signingCredentials: credentials
         );
 
