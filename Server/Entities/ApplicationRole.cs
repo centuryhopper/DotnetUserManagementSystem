@@ -6,4 +6,5 @@ namespace Server.Entities;
 public class ApplicationRole : IdentityRole
 {
     public bool IsActive { get; set; }
+    public int ApplicationId {get;set;}
 }

@@ -5,5 +5,5 @@ namespace Server.Entities;
 
 public class ApplicationUser : IdentityUser
 {
-
+    
 }

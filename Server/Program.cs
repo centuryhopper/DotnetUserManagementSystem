@@ -16,6 +16,18 @@ using Swashbuckle.AspNetCore.Filters;
 
 // MUST HAVE IT LIKE THIS FOR NLOG TO RECOGNIZE DOTNET USER-SECRETS INSTEAD OF HARDCODED DELIMIT PLACEHOLDER VALUE FROM APPSETTINGS.JSON
 
+
+/*
+
+IMPORTANT:
+
+- If changes are made to either applicationuser or applicationrole (i.e. new property added or taken away), then run the following commands in the cli:
+    dotnet tool update --global dotnet-ef 
+    dotnet ef migrations add [name your migration]
+    dotnet ef database update
+
+*/
+
 // #if DEBUG
 //     var logger = LogManager.Setup().LoadConfigurationFromFile("nlog_dev.config").GetCurrentClassLogger();
 // #else
@@ -49,11 +61,24 @@ using Swashbuckle.AspNetCore.Filters;
     });
 
     builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+    builder.Services.AddScoped<IApplicationsRepository, ApplicationsRepository>();
     builder.Services.AddScoped<IRolesRepository, RolesRepository>();
     builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 
     // Configure the Identity database context
     builder.Services.AddDbContext<UserManagementContext>(options =>
+        options.UseNpgsql(
+            builder.Environment.IsDevelopment()
+                    ?
+                        builder.Configuration.GetConnectionString("UserManagementDB")
+                    :
+                        Environment.GetEnvironmentVariable("UserManagementDB"))
+            );
+
+
+
+// To update UserManagementAdditionalContext, type dotnet ef dbcontext scaffold "connection string" Npgsql.EntityFrameworkCore.PostgreSQL -o Entities -c UserManagementAdditionalContext --context-dir Contexts --table application
+    builder.Services.AddDbContext<UserManagementAdditionalContext>(options =>
         options.UseNpgsql(
             builder.Environment.IsDevelopment()
                     ?
