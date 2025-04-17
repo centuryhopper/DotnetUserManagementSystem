@@ -1,4 +1,4 @@
-global using static HandyBlazorComponents.Models.HandyServiceResponses;
+global using static Shared.Models.ServiceResponses;
 
 using System.Text;
 using System.Threading.RateLimiting;
@@ -21,7 +21,6 @@ using Swashbuckle.AspNetCore.Filters;
 
 /*
 
-TODO: Add session timer component to UMS App
 
 IMPORTANT:
 

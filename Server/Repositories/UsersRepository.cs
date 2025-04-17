@@ -53,7 +53,7 @@ public class UsersRepository(UserManager<ApplicationUser> userManager, RoleManag
         };
     }
 
-    public async Task<HandyGeneralResponse> VerifyPassword(UserDTO dto, string password)
+    public async Task<GeneralResponse> VerifyPassword(UserDTO dto, string password)
     {
         var user = await userManager.FindByIdAsync(dto.Id);
         user ??= await userManager.FindByEmailAsync(dto.Email);
@@ -61,12 +61,12 @@ public class UsersRepository(UserManager<ApplicationUser> userManager, RoleManag
 
         if (user is null)
         {
-            return new HandyGeneralResponse(false, "User was not found");
+            return new GeneralResponse(false, "User was not found");
         }
 
         var check = await userManager.CheckPasswordAsync(user, password);
 
-        return new HandyGeneralResponse(check, check ? "Success" : "Fail");
+        return new GeneralResponse(check, check ? "Success" : "Fail");
     }
 
     public async Task<IEnumerable<UserDTO>> GetUsersAsync()

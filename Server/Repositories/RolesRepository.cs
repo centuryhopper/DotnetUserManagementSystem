@@ -13,9 +13,9 @@ namespace Server.Repositories;
 
 public class RolesRepository(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, IConfiguration configuration, IWebHostEnvironment webHostEnvironment) : IRolesRepository
 {
-    public async Task<IEnumerable<HandyGeneralResponse>> AddRolesAsync(IEnumerable<RoleDTO> dtos)
+    public async Task<IEnumerable<GeneralResponse>> AddRolesAsync(IEnumerable<RoleDTO> dtos)
     {
-        List<HandyGeneralResponse> responses = [];
+        List<GeneralResponse> responses = [];
         foreach (var dto in dtos)
         {
             responses.Add(await AddRoleAsync(dto));
@@ -23,11 +23,11 @@ public class RolesRepository(UserManager<ApplicationUser> userManager, RoleManag
         return responses;
     }
 
-    public async Task<HandyGeneralResponse> AddRoleAsync(RoleDTO dto)
+    public async Task<GeneralResponse> AddRoleAsync(RoleDTO dto)
     {
         if (await roleManager.RoleExistsAsync(dto.RoleName))
         {
-            return new HandyGeneralResponse(Flag: false, Message: $"role {dto.RoleName} already exists");
+            return new GeneralResponse(Flag: false, Message: $"role {dto.RoleName} already exists");
         }
 
         var result = await roleManager.CreateAsync(new ApplicationRole
@@ -38,26 +38,26 @@ public class RolesRepository(UserManager<ApplicationUser> userManager, RoleManag
 
         if (!result.Succeeded)
         {
-            return new HandyGeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
+            return new GeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
         }
 
-        return new HandyGeneralResponse(Flag: true, Message: $"{dto.RoleName} role has been created.");
+        return new GeneralResponse(Flag: true, Message: $"{dto.RoleName} role has been created.");
     }
 
-    public async Task<HandyGeneralResponse> DeleteRoleAsync(string roleId)
+    public async Task<GeneralResponse> DeleteRoleAsync(string roleId)
     {
         var role = await roleManager.FindByIdAsync(roleId);
         var result = await roleManager.DeleteAsync(role!);
 
         if (!result.Succeeded)
         {
-            return new HandyGeneralResponse(Flag: false, Message: "failed to delete role");
+            return new GeneralResponse(Flag: false, Message: "failed to delete role");
         }
 
-        return new HandyGeneralResponse(Flag: true, Message: "role deleted!");
+        return new GeneralResponse(Flag: true, Message: "role deleted!");
     }
 
-    public async Task<HandyGeneralResponse> EditRoleAsync(RoleDTO dto)
+    public async Task<GeneralResponse> EditRoleAsync(RoleDTO dto)
     {
         var role = await roleManager.FindByIdAsync(dto.Id);
         role.Name = dto.RoleName;
@@ -67,10 +67,10 @@ public class RolesRepository(UserManager<ApplicationUser> userManager, RoleManag
 
         if (!result.Succeeded)
         {
-            return new HandyGeneralResponse(Flag: false, Message: "failed to edit role");
+            return new GeneralResponse(Flag: false, Message: "failed to edit role");
         }
 
-        return new HandyGeneralResponse(Flag: true, Message: "role edited!");
+        return new GeneralResponse(Flag: true, Message: "role edited!");
 
     }
 

@@ -9,8 +9,8 @@ public interface IApplicationsRepository
 {
     Task<IEnumerable<ApplicationDTO>> GetApplicationsAsync();
     Task<IEnumerable<ApplicationDTO>> GetApplicationsByAppNameAndUserIdAsync(string appName, string userId);
-    Task<HandyGeneralResponseWithPayload> AddApplicationAsync(ApplicationDTO dto);
-    Task<IEnumerable<HandyGeneralResponseWithPayload>> AddApplicationsAsync(IEnumerable<ApplicationDTO> dtos);
-    Task<HandyGeneralResponseWithPayload> EditApplicationAsync(ApplicationDTO dto);
-    Task<HandyGeneralResponse> DeleteApplicationAsync(int applicationId);
+    Task<GeneralResponseWithPayload> AddApplicationAsync(ApplicationDTO dto);
+    Task<IEnumerable<GeneralResponseWithPayload>> AddApplicationsAsync(IEnumerable<ApplicationDTO> dtos);
+    Task<GeneralResponseWithPayload> EditApplicationAsync(ApplicationDTO dto);
+    Task<GeneralResponse> DeleteApplicationAsync(int applicationId);
 }

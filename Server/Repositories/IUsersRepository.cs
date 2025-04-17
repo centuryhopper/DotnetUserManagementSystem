@@ -7,7 +7,7 @@ using Shared.Models;
 
 public interface IUsersRepository
 {
-    Task<HandyGeneralResponse> VerifyPassword(UserDTO dto, string password);
+    Task<GeneralResponse> VerifyPassword(UserDTO dto, string password);
     Task<UserDTO> GetUserByIdAsync(string id);
     Task<UserDTO> GetUserByEmailAsync(string email);
     Task<UserDTO> GetUserByUsernameAsync(string username);

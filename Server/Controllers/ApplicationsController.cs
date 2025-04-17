@@ -23,7 +23,7 @@ public class ApplicationsController(IApplicationsRepository applicationsReposito
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
@@ -37,7 +37,7 @@ public class ApplicationsController(IApplicationsRepository applicationsReposito
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
@@ -51,7 +51,7 @@ public class ApplicationsController(IApplicationsRepository applicationsReposito
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
@@ -69,7 +69,7 @@ public class ApplicationsController(IApplicationsRepository applicationsReposito
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
@@ -87,7 +87,7 @@ public class ApplicationsController(IApplicationsRepository applicationsReposito
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 

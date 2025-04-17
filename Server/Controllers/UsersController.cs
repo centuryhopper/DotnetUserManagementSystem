@@ -48,7 +48,7 @@ public class UsersController(IUsersRepository usersRepository, ILogger<UsersCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
@@ -63,7 +63,7 @@ public class UsersController(IUsersRepository usersRepository, ILogger<UsersCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
@@ -78,7 +78,7 @@ public class UsersController(IUsersRepository usersRepository, ILogger<UsersCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
@@ -93,7 +93,7 @@ public class UsersController(IUsersRepository usersRepository, ILogger<UsersCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
@@ -108,7 +108,7 @@ public class UsersController(IUsersRepository usersRepository, ILogger<UsersCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new HandyGeneralResponse(false, ex.Message));
+            return BadRequest(new GeneralResponse(false, ex.Message));
         }
     }
 
