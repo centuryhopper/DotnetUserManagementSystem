@@ -2,16 +2,16 @@
 
 using Microsoft.AspNetCore.Identity;
 using Shared.Models;
-using static Shared.Models.ServiceResponses;
+
 
 
 public interface IAccountRepository
 {
-    Task<LoginResponse> LoginAsync(LoginDTO dto);
-    Task<GeneralResponse> EditProfileAsync(ProfileDTO dto);
-    Task<GeneralResponse> RegisterAsync(RegisterDTO dto);
-    Task<GeneralResponse> ResetPasswordAsync(ResetPasswordDTO dto);
-    Task<GeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto);
-    Task<GeneralResponse> ConfirmEmailAsync(ConfirmEmailDTO dto);
-    Task<GeneralResponse> CreateRole(string roleName);
+    Task<HandyLoginResponse> LoginAsync(LoginDTO dto);
+    Task<HandyGeneralResponse> EditProfileAsync(ProfileDTO dto);
+    Task<HandyGeneralResponse> RegisterAsync(RegisterDTO dto);
+    Task<HandyGeneralResponse> ResetPasswordAsync(ResetPasswordDTO dto);
+    Task<HandyGeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto);
+    Task<HandyGeneralResponse> ConfirmEmailAsync(ConfirmEmailDTO dto);
+    Task<HandyGeneralResponse> CreateRole(string roleName);
 }

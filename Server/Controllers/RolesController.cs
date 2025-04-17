@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 using Shared.Models;
-using static Shared.Models.ServiceResponses;
+
 
 namespace Server.Controllers;
 
@@ -34,7 +34,7 @@ public class RolesController(IRolesRepository rolesRepository, ILogger<RolesCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new GeneralResponse(false, ex.Message));
+            return BadRequest(new HandyGeneralResponse(false, ex.Message));
         }
     }
 
@@ -48,7 +48,7 @@ public class RolesController(IRolesRepository rolesRepository, ILogger<RolesCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new GeneralResponse(false, ex.Message));
+            return BadRequest(new HandyGeneralResponse(false, ex.Message));
         }
     }
 
@@ -66,7 +66,7 @@ public class RolesController(IRolesRepository rolesRepository, ILogger<RolesCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new GeneralResponse(false, ex.Message));
+            return BadRequest(new HandyGeneralResponse(false, ex.Message));
         }
     }
 
@@ -84,7 +84,7 @@ public class RolesController(IRolesRepository rolesRepository, ILogger<RolesCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new GeneralResponse(false, ex.Message));
+            return BadRequest(new HandyGeneralResponse(false, ex.Message));
         }
     }
 
@@ -102,9 +102,9 @@ public class RolesController(IRolesRepository rolesRepository, ILogger<RolesCont
         }
         catch (System.Exception ex)
         {
-            return BadRequest(new GeneralResponse(false, ex.Message));
+            return BadRequest(new HandyGeneralResponse(false, ex.Message));
         }
     }
 
-   
+
 }

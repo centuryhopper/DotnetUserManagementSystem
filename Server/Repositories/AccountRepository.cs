@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Server.Contexts;
 using Server.Entities;
-using static Shared.Models.ServiceResponses;
+
 using Server.Utils;
 using Shared;
 using Microsoft.AspNetCore.WebUtilities;
@@ -17,18 +17,18 @@ namespace Server.Repositories;
 
 public class AccountRepository(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, IWebHostEnvironment webHostEnvironment) : IAccountRepository
 {
-    public async Task<GeneralResponse> ConfirmEmailAsync(ConfirmEmailDTO dto)
+    public async Task<HandyGeneralResponse> ConfirmEmailAsync(ConfirmEmailDTO dto)
     {
         if (string.IsNullOrEmpty(dto.Token) || string.IsNullOrEmpty(dto.UserId))
         {
-            return new GeneralResponse(Flag: false, Message: "Missing user id or token.");
+            return new HandyGeneralResponse(Flag: false, Message: "Missing user id or token.");
         }
 
         var user = await userManager.FindByIdAsync(dto.UserId);
 
         if (user is null)
         {
-            return new GeneralResponse(Flag: false, Message: "The user id is invalid");
+            return new HandyGeneralResponse(Flag: false, Message: "The user id is invalid");
         }
 
         var result = await userManager.ConfirmEmailAsync(user, Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(dto.Token)));
@@ -40,14 +40,14 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
             user.UserName = user.Email;
             user.NormalizedUserName = user.UserName.ToUpper();
             await userManager.UpdateAsync(user);
-            return new GeneralResponse(Flag: true, Message: "The email has been successfully confirmed!");
+            return new HandyGeneralResponse(Flag: true, Message: "The email has been successfully confirmed!");
         }
 
         // TempData[TempDataKeys.ALERT_ERROR] = "We couldn't confirm your email.";
-        return new GeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
+        return new HandyGeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
     }
 
-    public async Task<GeneralResponse> CreateRole(string roleName)
+    public async Task<HandyGeneralResponse> CreateRole(string roleName)
     {
         // We just need to specify a unique role name to create a new role
         ApplicationRole role = new ApplicationRole
@@ -60,18 +60,18 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
 
         if (!result.Succeeded)
         {
-            return new GeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
+            return new HandyGeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
         }
 
-        return new GeneralResponse(Flag: true, Message: "role created!");
+        return new HandyGeneralResponse(Flag: true, Message: "role created!");
     }
 
-    public async Task<GeneralResponse> EditProfileAsync(ProfileDTO dto)
+    public async Task<HandyGeneralResponse> EditProfileAsync(ProfileDTO dto)
     {
         var user = await userManager.FindByIdAsync(dto.Id);
         if (user == null)
         {
-            return new GeneralResponse(Flag: false, Message: "user is false");
+            return new HandyGeneralResponse(Flag: false, Message: "user is false");
         }
 
         List<string> errors = [];
@@ -135,7 +135,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
             // the ModelState and rerender ChangePassword view
             if (!result.Succeeded)
             {
-                return new GeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
+                return new HandyGeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
             }
 
             // Upon successfully changing the password refresh sign-in cookie
@@ -146,18 +146,18 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
 
         if (successes.Any())
         {
-            return new GeneralResponse(Flag: true, Message: string.Join("$$$", successes));
+            return new HandyGeneralResponse(Flag: true, Message: string.Join("$$$", successes));
 
         }
         if (errors.Any())
         {
-            return new GeneralResponse(Flag: false, Message: string.Join("$$$", errors));
+            return new HandyGeneralResponse(Flag: false, Message: string.Join("$$$", errors));
         }
 
-        return new GeneralResponse(Flag: true, Message: "no changes made");
+        return new HandyGeneralResponse(Flag: true, Message: "no changes made");
     }
 
-    public async Task<GeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto)
+    public async Task<HandyGeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto)
     {
         // Find the user by email
         var user = await userManager.FindByEmailAsync(dto.Email);
@@ -176,18 +176,18 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
 
             Helpers.SendEmail(subject: "password reset link", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: passwordResetLink, receivers: [dto.Email]);
 
-            return new GeneralResponse(Flag: true, Message: "If you have an account with us, we have sent an email with the instructions to reset your password.");
+            return new HandyGeneralResponse(Flag: true, Message: "If you have an account with us, we have sent an email with the instructions to reset your password.");
         }
 
         // same return value in order to prevent cyber attacks
-        return new GeneralResponse(Flag: true, Message: "If you have an account with us, we have sent an email with the instructions to reset your password.");
+        return new HandyGeneralResponse(Flag: true, Message: "If you have an account with us, we have sent an email with the instructions to reset your password.");
     }
 
-    public async Task<LoginResponse> LoginAsync(LoginDTO dto)
+    public async Task<HandyLoginResponse> LoginAsync(LoginDTO dto)
     {
         if (dto is null)
         {
-            return new LoginResponse(false, null!, "Login container is empty");
+            return new HandyLoginResponse(false, null!, "Login container is empty");
         }
 
         var getUser = await userManager.FindByEmailAsync(dto.Email);
@@ -196,7 +196,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
             getUser = await userManager.FindByNameAsync(dto.Email);
             if (getUser is null)
             {
-                return new LoginResponse(false, null!, "User not found");
+                return new HandyLoginResponse(false, null!, "User not found");
             }
         }
 
@@ -204,16 +204,16 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
         bool checkUserPasswords = await userManager.CheckPasswordAsync(getUser, dto.Password);
         if (!checkUserPasswords)
         {
-            return new LoginResponse(false, null!, "Invalid email/password");
+            return new HandyLoginResponse(false, null!, "Invalid email/password");
         }
 
         var getUserRole = await userManager.GetRolesAsync(getUser);
         string token = GenerateToken(getUser.Id, getUser.UserName, getUser.Email, getUserRole.First());
 
-        return new LoginResponse(true, token!, "Login completed");
+        return new HandyLoginResponse(true, token!, "Login completed");
     }
 
-    public async Task<GeneralResponse> RegisterAsync(RegisterDTO dto)
+    public async Task<HandyGeneralResponse> RegisterAsync(RegisterDTO dto)
     {
         // Copy data from RegisterViewModel to IdentityUser
         var user = new ApplicationUser
@@ -229,7 +229,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
             var createRole = await CreateRole(roleToCreate);
             if (!createRole.Flag)
             {
-                return new GeneralResponse(Flag: false, Message: createRole.Message);
+                return new HandyGeneralResponse(Flag: false, Message: createRole.Message);
             }
         }
 
@@ -245,7 +245,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
                 var addRoleResult = await userManager.AddToRoleAsync(user, Constants.USER);
                 if (!addRoleResult.Succeeded)
                 {
-                    return new GeneralResponse(Flag: false, Message: string.Join("$$$", addRoleResult.Errors.Select(e => e.Description)));
+                    return new HandyGeneralResponse(Flag: false, Message: string.Join("$$$", addRoleResult.Errors.Select(e => e.Description)));
                 }
             }
 
@@ -275,21 +275,21 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
 
                 Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [user.Email]);
 
-                return new GeneralResponse(Flag: true, Message: "Registration Successful! Please confirm your email to login.");
+                return new HandyGeneralResponse(Flag: true, Message: "Registration Successful! Please confirm your email to login.");
             }
             else
             {
                 await signInManager.SignInAsync(user, isPersistent: false);
             }
 
-            return new GeneralResponse(Flag: true, Message: "Registered!");
+            return new HandyGeneralResponse(Flag: true, Message: "Registered!");
         }
 
-        return new GeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
+        return new HandyGeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
 
     }
 
-    public async Task<GeneralResponse> ResetPasswordAsync(ResetPasswordDTO dto)
+    public async Task<HandyGeneralResponse> ResetPasswordAsync(ResetPasswordDTO dto)
     {
         var user = await userManager.FindByEmailAsync(dto.Email);
 
@@ -305,14 +305,14 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
                 {
                     await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow);
                 }
-                
-                return new GeneralResponse(Flag: true, Message: "Your password has been reset. Please login.");
+
+                return new HandyGeneralResponse(Flag: true, Message: "Your password has been reset. Please login.");
             }
 
-            return new GeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
+            return new HandyGeneralResponse(Flag: false, Message: string.Join("$$$", result.Errors.Select(e => e.Description)));
         }
 
-        return new GeneralResponse(Flag: false, Message: "couldn't find user");
+        return new HandyGeneralResponse(Flag: false, Message: "couldn't find user");
     }
 
     private string GenerateToken(string userId, string userName, string email, string role)

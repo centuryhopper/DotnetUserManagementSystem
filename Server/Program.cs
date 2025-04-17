@@ -1,3 +1,5 @@
+global using static HandyBlazorComponents.Models.HandyServiceResponses;
+
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

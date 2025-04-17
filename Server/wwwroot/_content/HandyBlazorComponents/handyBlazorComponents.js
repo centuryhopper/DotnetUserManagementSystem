@@ -4,6 +4,10 @@
 // const is block scoped and has no hoisting
 // var is global, let is local
 
+function getActiveElementClass() {
+  return document.activeElement?.className || ""
+}
+
 function resetBeforeUnloads() {
   window.removeEventListener("beforeunload", handleBeforeUnload);
 }
