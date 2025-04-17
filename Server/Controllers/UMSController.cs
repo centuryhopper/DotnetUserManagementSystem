@@ -50,6 +50,7 @@ public class UMSController(
             username = getUser.UserName,
             email = getUser.Email,
             Roles = getRoles,
+            userId = getUser.Id,
         });
     }
 }
