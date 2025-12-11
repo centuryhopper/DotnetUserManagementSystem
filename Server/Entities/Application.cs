@@ -12,4 +12,6 @@ public partial class Application
     public string Roleid { get; set; } = null!;
 
     public string Applicationname { get; set; } = null!;
+
+    public bool? Requirestwofactor { get; set; }
 }

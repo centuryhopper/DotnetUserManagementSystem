@@ -40,142 +40,149 @@ IMPORTANT:
 
 // try
 // {
-    
-    var builder = WebApplication.CreateBuilder(args);
 
-    // Add services to the container.
-    // builder.Logging.ClearProviders();
-    // builder.Host.UseNLog();
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+// builder.Logging.ClearProviders();
+// builder.Host.UseNLog();
 
 
-    builder.Services.AddControllers();
-    builder.Services.AddRazorPages();
-    builder.Services.AddHttpClient();
-    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(options=>{
-        options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme {
-            In = ParameterLocation.Header,
-            Name = "Authorization",
-            Type = SecuritySchemeType.ApiKey,
-        });
-
-        options.OperationFilter<SecurityRequirementsOperationFilter>();
+builder.Services.AddControllers();
+builder.Services.AddRazorPages();
+builder.Services.AddHttpClient();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
     });
 
-    builder.Services.AddScoped<IAccountRepository, AccountRepository>();
-    builder.Services.AddScoped<IApplicationsRepository, ApplicationsRepository>();
-    builder.Services.AddScoped<IRolesRepository, RolesRepository>();
-    builder.Services.AddScoped<IUsersRepository, UsersRepository>();
+    options.OperationFilter<SecurityRequirementsOperationFilter>();
+});
 
-    // Configure the Identity database context
-    builder.Services.AddDbContext<UserManagementContext>(options =>
-        options.UseNpgsql(
-            builder.Environment.IsDevelopment()
-                    ?
-                        builder.Configuration.GetConnectionString("UserManagementDB")
-                    :
-                        Environment.GetEnvironmentVariable("UserManagementDB"))
-            );
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<IApplicationsRepository, ApplicationsRepository>();
+builder.Services.AddScoped<IRolesRepository, RolesRepository>();
+builder.Services.AddScoped<IUsersRepository, UsersRepository>();
+
+// Configure the Identity database context
+builder.Services.AddDbContext<UserManagementContext>(options =>
+    options.UseNpgsql(
+        builder.Environment.IsDevelopment()
+                ?
+                    builder.Configuration.GetConnectionString("UserManagementDB")
+                :
+                    Environment.GetEnvironmentVariable("UserManagementDB"))
+        );
 
 
 
 // To update UserManagementAdditionalContext, type dotnet ef dbcontext scaffold "connection string" Npgsql.EntityFrameworkCore.PostgreSQL -o Entities -c UserManagementAdditionalContext --context-dir Contexts --table application
-    builder.Services.AddDbContext<UserManagementAdditionalContext>(options =>
-        options.UseNpgsql(
-            builder.Environment.IsDevelopment()
-                    ?
-                        builder.Configuration.GetConnectionString("UserManagementDB")
-                    :
-                        Environment.GetEnvironmentVariable("UserManagementDB"))
-            );
+builder.Services.AddDbContext<UserManagementAdditionalContext>(options =>
+    options.UseNpgsql(
+        builder.Environment.IsDevelopment()
+                ?
+                    builder.Configuration.GetConnectionString("UserManagementDB")
+                :
+                    Environment.GetEnvironmentVariable("UserManagementDB"))
+        );
 
 
-    builder.Services
-    .AddIdentity<ApplicationUser, ApplicationRole>()
-    .AddEntityFrameworkStores<UserManagementContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders()
-    .AddRoles<ApplicationRole>();
+builder.Services
+.AddIdentity<ApplicationUser, ApplicationRole>()
+.AddEntityFrameworkStores<UserManagementContext>()
+.AddSignInManager()
+.AddDefaultTokenProviders()
+.AddRoles<ApplicationRole>();
 
-    builder.Services.Configure<IdentityOptions>(options =>
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Password.RequiredLength = 7;
+    options.Password.RequiredUniqueChars = 3;
+    options.Password.RequireNonAlphanumeric = false;
+    options.SignIn.RequireConfirmedAccount = true;
+    options.SignIn.RequireConfirmedEmail = true;
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+});
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.Password.RequiredLength = 7;
-        options.Password.RequiredUniqueChars = 3;
-        options.Password.RequireNonAlphanumeric = false;
-        options.SignIn.RequireConfirmedAccount = true;
-        options.SignIn.RequireConfirmedEmail = true;
-        options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-    });
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        ValidIssuer = builder.Environment.IsDevelopment() ? builder.Configuration["Jwt:Issuer"] : Environment.GetEnvironmentVariable("Jwt_Issuer"),
+        ValidAudience = builder.Environment.IsDevelopment() ? builder.Configuration["Jwt:Audience"] : Environment.GetEnvironmentVariable("Jwt_Audience"),
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Environment.IsDevelopment() ? builder.Configuration["Jwt:Key"] : Environment.GetEnvironmentVariable("Jwt_Key")))
+    };
+});
 
-    builder.Services.AddAuthentication(options => {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    }).AddJwtBearer(options => {
-        options.TokenValidationParameters = new TokenValidationParameters {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateIssuerSigningKey = true,
-            ValidateLifetime = true,
-            ValidIssuer = builder.Environment.IsDevelopment() ? builder.Configuration["Jwt:Issuer"] : Environment.GetEnvironmentVariable("Jwt_Issuer"),
-            ValidAudience = builder.Environment.IsDevelopment() ? builder.Configuration["Jwt:Audience"] : Environment.GetEnvironmentVariable("Jwt_Audience"),
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Environment.IsDevelopment() ? builder.Configuration["Jwt:Key"] : Environment.GetEnvironmentVariable("Jwt_Key")))
-        };
-    });
+if (!builder.Environment.IsDevelopment())
+{
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "8081";
+    builder.WebHost.UseUrls($"http://*:{port}");
+}
 
-    if (!builder.Environment.IsDevelopment())
+// add rate limits
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("FixedPolicy", options =>
     {
-        var port = Environment.GetEnvironmentVariable("PORT") ?? "8081";
-        builder.WebHost.UseUrls($"http://*:{port}");
-    }
-
-    // add rate limits
-    builder.Services.AddRateLimiter(options => {
-        options.AddFixedWindowLimiter("FixedPolicy", options => {
-            options.PermitLimit = 5;
-            options.Window = TimeSpan.FromSeconds(30);
-            // options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            options.QueueLimit = 0;
-        });
-        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        
-        // for mvc apps:
-        // options.OnRejected = (ctx, token) => {
-        //     ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        //     ctx.HttpContext.Response.WriteAsync("no more than one call every 5 seconds!");
-        //     return ValueTask.CompletedTask;
-        // };
+        options.PermitLimit = 5;
+        options.Window = TimeSpan.FromSeconds(30);
+        // options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        options.QueueLimit = 0;
     });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    var app = builder.Build();
+    // for mvc apps:
+    // options.OnRejected = (ctx, token) => {
+    //     ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+    //     ctx.HttpContext.Response.WriteAsync("no more than one call every 5 seconds!");
+    //     return ValueTask.CompletedTask;
+    // };
+});
 
-    // Configure the HTTP request pipeline.
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseWebAssemblyDebugging();
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+var app = builder.Build();
 
-    app.UseHttpsRedirection();
-    app.UseBlazorFrameworkFiles();
-    app.UseStaticFiles();
-    app.UseRouting();
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseWebAssemblyDebugging();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-    // MUST be after app.userouting
-    // https://github.com/dotnet/aspnetcore/issues/45302
-    app.UseRateLimiter();
+app.UseHttpsRedirection();
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
+app.UseRouting();
 
-    app.UseAuthentication();
-    app.UseAuthorization();
+// MUST be after app.userouting
+// https://github.com/dotnet/aspnetcore/issues/45302
+app.UseRateLimiter();
 
-    app.MapRazorPages();
-    app.MapControllers();
-    app.MapFallbackToFile("index.html");
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapRazorPages();
+app.MapControllers();
+app.MapFallbackToFile("index.html");
 
 
-    app.Run();
+app.Run();
 // }
 //  catch (Exception ex)
 // {

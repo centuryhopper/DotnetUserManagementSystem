@@ -28,6 +28,7 @@ public partial class UserManagementAdditionalContext : DbContext
 
             entity.Property(e => e.Applicationid).HasColumnName("applicationid");
             entity.Property(e => e.Applicationname).HasColumnName("applicationname");
+            entity.Property(e => e.Requirestwofactor).HasColumnName("requirestwofactor");
             entity.Property(e => e.Roleid).HasColumnName("roleid");
             entity.Property(e => e.Userid).HasColumnName("userid");
         });

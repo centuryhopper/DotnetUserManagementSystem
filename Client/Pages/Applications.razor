@@ -1,0 +1,161 @@
+@page "/applications"
+
+@using Client.Models
+@using Client.Services
+@using HandyBlazorComponents.Models
+@attribute [Authorize(Roles = Shared.Constants.ADMIN)]
+
+<div class="text-center m-5">
+    <h2><b>All Applications</b></h2>
+</div>
+<hr />
+<div class="text-center overflow-auto m-3">
+    @if (doneLoadingLst)
+    {
+        <CascadingValue Name="HandyGridState" Value="applicationsGridStateService" IsFixed="true">
+            <DynamicHandyGrid TItem="ApplicationDTO" TEntity="ApplicationsGridEntity" Items="Items" />
+        </CascadingValue>
+    }
+    else
+    {
+        <div class="d-flex justify-content-center">
+            <div id="loadingIndicator" class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+</div>
+
+<HandyToast @ref="handyToast" Title="Success" Message="Your operation completed successfully."
+    ToastType="HandyToastType.SUCCESS" Duration="5" />
+
+<StackedHandyToast @ref="stackedHandyToast" Title="Success" Message="Your operation completed successfully."
+    ToastType="HandyToastType.SUCCESS" Duration="5" Position="HandyToastPosition.CENTER_ALIGN" />
+
+@code {
+    private bool doneLoadingLst = false;
+    private HttpClient httpClient { get; set; }
+    private ApplicationsGridStateService applicationsGridStateService = default!;
+    private HandyToast handyToast = default!;
+    private StackedHandyToast stackedHandyToast = default!;
+    List<ApplicationsGridEntity> Items = [];
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = httpClientFactory.CreateClient(Constants.HTTP_CLIENT);
+
+        var users = (await httpClient.GetFromJsonAsync<IEnumerable<UserDTO>>("api/Users/get-users")).Select(u => new
+        HandyNamedTuple(Text: u.Username, Value: u.Id)).ToList();
+
+        var roles = (await
+        httpClient.GetFromJsonAsync<IEnumerable<RoleDTO>>("api/Roles/get-roles")).Select(r => new HandyNamedTuple(Text:
+        r.RoleName, Value: r.Id)).ToList();
+
+        Items = (await
+        httpClient.GetFromJsonAsync<IEnumerable<ApplicationDTO>>("api/Applications/get-applications")).Select(p => new
+        ApplicationsGridEntity(Object: p)).OrderBy(p => p.Object.Applicationid).ToList();
+        applicationsGridStateService = new(
+        Items: Items,
+        PageSize: 5,
+        ReadonlyColumns: [nameof(ApplicationDTO.Applicationid)],
+        ColumnsToHide: [nameof(ApplicationDTO.Applicationid)],
+        IsReadonly: false,
+        AddNewItemsText: "Add New Applications",
+        ShowRowIndex: false,
+        ShowFilters: false,
+        EditModeFragments: [
+        new HandyNamedRenderFragment<ApplicationsGridEntity>(
+Name: nameof(ApplicationDTO.Userid),
+Fragment: o => @<HandyDropdown TItem="ApplicationDTO" Item="o.Object" ColumnName="@(nameof(ApplicationDTO.Userid))"
+            Options="@(users.Prepend(new(Text: "", Value: "")).ToList())" />),
+        new HandyNamedRenderFragment<ApplicationsGridEntity>(
+        Name: nameof(ApplicationDTO.Roleid),
+        Fragment: o => @<HandyDropdown TItem="ApplicationDTO" Item="o.Object" ColumnName="@(nameof(ApplicationDTO.Roleid))"
+    Options="@(roles.Prepend(new(Text: "", Value: "")).ToList())" />),
+],
+ViewModeFragments: [
+new HandyNamedRenderFragment<ApplicationsGridEntity>(
+Name: nameof(ApplicationDTO.Userid),
+Fragment: o => @<span>@(users.FirstOrDefault(u => u.Value == o.Object.Userid)?.Text ?? "n/a")</span>),
+        new HandyNamedRenderFragment<ApplicationsGridEntity>(
+        Name: nameof(ApplicationDTO.Roleid),
+        Fragment: o => @<span>@(roles.FirstOrDefault(r => r.Value == o.Object.Roleid)?.Text ?? "n/a")</span>),
+],
+OnCreate: async (items) =>
+{
+    var list = items.ToList();
+
+    // apply changes here to db in real-world scenario as well
+    var response = await httpClient.PostAsJsonAsync("api/Applications/add-applications", list.Select(e => e.Object));
+
+    var responseContents = await response.Content.ReadFromJsonAsync<IEnumerable<HandyGeneralResponseWithPayload>>();
+
+    // TODO: do this kind of style for the other UMS tables logic as well
+    if (responseContents.Any(r => !r.Flag))
+    {
+        var badResponses = responseContents.Where(r => !r.Flag);
+        badResponses.ToList().ForEach(br => {
+            _ = stackedHandyToast.ShowToastAsync("Error", br.Message, HandyToastType.ERROR);
+        });
+        return;
+    }
+
+    foreach (var (i, responseContent) in responseContents.Select((r, i) => (i, r)))
+    {
+        //Console.WriteLine("payload: " + responseContent.Payload);
+        list[i].Object.Applicationid = int.Parse(responseContent.Payload);
+        _ = stackedHandyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
+    }
+
+    Items.AddRange(list);
+    //foreach (var val in Items)
+    //{
+    //    Console.WriteLine(val.Object.Applicationid);
+    //}
+    StateHasChanged();
+},
+OnDelete: async (item) =>
+{
+    var val = Items.FirstOrDefault(i => i.Object.Applicationid == item.Object.Applicationid);
+    var response = await httpClient.DeleteAsync($"api/Applications/delete-application/{item.Object.Applicationid}");
+    var responseContent = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
+    if (!responseContent.Flag)
+    {
+        _ = handyToast.ShowToastAsync("Error", responseContent.Message, HandyToastType.ERROR);
+    }
+    else
+    {
+        Items.Remove(val);
+        StateHasChanged();
+        _ = handyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
+    }
+},
+OnUpdate: async (item) =>
+{
+    var response = await httpClient.PatchAsJsonAsync("api/Applications/edit-application", item.Object);
+    var responseContent = await response.Content.ReadFromJsonAsync<HandyGeneralResponseWithPayload>();
+    if (!responseContent.Flag)
+    {
+        _ = handyToast.ShowToastAsync("Error", responseContent.Message, HandyToastType.ERROR);
+    }
+    else
+    {
+        _ = handyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
+        var idx = Items.FindIndex(i => i.Object.Applicationid == item.Object.Applicationid);
+        Items[idx] = item;
+        StateHasChanged();
+    }
+});
+
+        doneLoadingLst = true;
+
+        var authState = await ((ApiAuthenticationStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // userId = Convert.ToInt32(user.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+    }
+
+
+
+}

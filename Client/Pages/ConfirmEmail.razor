@@ -1,0 +1,40 @@
+@page "/confirm-email"
+
+@if (isConfirmationSuccess)
+{
+    <h2 class="text-success text-center mt-3">
+        Your email has been confirmed. Please sign in to get started.
+    </h2>
+}
+else
+{
+    <h2 class="text-success text-center mt-3">
+        Your email could not be confirmed. Please try again later.
+    </h2>
+}
+
+
+@code {
+    private HttpClient httpClient;
+    private bool isConfirmationSuccess = false;
+
+    [SupplyParameterFromQuery]
+    public string userId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string token { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = httpClientFactory.CreateClient(Constants.HTTP_CLIENT);
+        var response = await httpClient.PostAsJsonAsync("api/Account/confirm-email", new ConfirmEmailDTO
+        {
+            Token = token,
+            UserId = userId,
+        });
+
+        var responseContent = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
+        isConfirmationSuccess = responseContent?.Flag ?? false;
+
+    }
+}

@@ -1,0 +1,59 @@
+@page "/users"
+@using Client.Models
+@using Client.Services
+@using HandyBlazorComponents.Models
+@attribute [Authorize(Roles = Shared.Constants.ADMIN)]
+
+<div class="text-center m-5">
+    <h2><b>All Users</b></h2>
+</div>
+<hr />
+<div class="text-center overflow-auto m-3">
+    @if (doneLoadingLst)
+    {
+        <CascadingValue Name="HandyGridState" Value="usersGridStateService" IsFixed="true">
+            <DynamicHandyGrid TItem="UserDTO" TEntity="UsersGridEntity" Items="Items"/>
+        </CascadingValue>
+    }
+    else
+    {
+        <div class="d-flex justify-content-center">
+            <div id="loadingIndicator" class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+</div>
+
+<HandyToast @ref="handyToast" Title="Success" Message="Your operation completed successfully."
+    ToastType="HandyToastType.SUCCESS" Duration="5" />
+
+
+@code {
+    private bool doneLoadingLst = false;
+    private HttpClient httpClient { get; set; }
+    private UsersGridStateService usersGridStateService = default!;
+    private HandyToast handyToast = default!;
+    List<UsersGridEntity> Items = [];
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = httpClientFactory.CreateClient(Constants.HTTP_CLIENT);
+        Items = (await httpClient.GetFromJsonAsync<IEnumerable<UserDTO>>("api/Users/get-users")).Select(p => new UsersGridEntity(Object: p)).OrderBy(p => p.Object.Id).ToList();
+        usersGridStateService = new(
+        Items: Items,
+        PageSize: 5,
+        ShowRowIndex: false,
+        ShowFilters: false,
+        CanAddNewItems: false,
+        ColumnsToHide: [nameof(UserDTO.Id)]
+        );
+
+        doneLoadingLst = true;
+
+        var authState = await ((ApiAuthenticationStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        var user = authState.User;
+    }
+
+}
