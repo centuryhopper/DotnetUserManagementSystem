@@ -7,7 +7,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
+
 using NLog;
 using NLog.Web;
 using NpgsqlTypes;
@@ -28,6 +29,16 @@ IMPORTANT:
     dotnet tool update --global dotnet-ef 
     dotnet ef migrations add [name your migration]
     dotnet ef database update
+
+dotnet outdated cli tool is useful for checking outdated nuget packages
+
+TODO: Create a settings razor file in the UMS blazor app that allows users to toggle 2FA for their account.
+
+
+UPDATE COMMAND TO ENABLE 2FA FOR A USER:
+    update public."AspNetUsers"
+    set "TwoFactorEnabled" = true
+    where "Email" = 'hello@gmail.com'
 
 */
 
@@ -107,9 +118,11 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.SignIn.RequireConfirmedAccount = true;
     options.SignIn.RequireConfirmedEmail = true;
+    options.User.RequireUniqueEmail = true;
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 });
+
 
 builder.Services.AddAuthentication(options =>
 {

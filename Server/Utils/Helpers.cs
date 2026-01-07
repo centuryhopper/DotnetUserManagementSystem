@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using MimeKit;
 using MailKit.Net.Smtp;
+using MimeKit.Text;
 
 
 namespace Server.Utils;
@@ -12,7 +13,8 @@ public static class Helpers
         string body,
         string senderEmail,
         string senderPassword,
-        IEnumerable<string> receivers
+        IEnumerable<string> receivers,
+        TextFormat textFormat = TextFormat.Plain
     )
     {
         var msg = new MimeMessage();
@@ -26,7 +28,7 @@ public static class Helpers
 
         msg.Subject = subject;
 
-        msg.Body = new TextPart("plain") { Text = body, };
+        msg.Body = new TextPart(textFormat) { Text = body, };
 
         var client = new SmtpClient();
 

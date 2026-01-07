@@ -1,6 +1,6 @@
-@Server_HostAddress = http://localhost:5223
+@Server_HostAddress = http://localhost:5220
 
-GET {{Server_HostAddress}}/weatherforecast/
+GET {{Server_HostAddress}}/api/ums/verify-2fa?userId=a287e4ba-07ba-42a7-8fea-5302c5e55c8a&code=344648
 Accept: application/json
 
 ###

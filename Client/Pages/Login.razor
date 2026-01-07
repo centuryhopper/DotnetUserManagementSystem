@@ -127,6 +127,7 @@
         // Handle login logic here
         //Console.WriteLine("showing modal");
         var response = await accountService.LoginAsync(dto);
+        //Console.WriteLine(response.Token);
         loading = false;
         if (!response.Flag)
         {
@@ -137,6 +138,12 @@
             {
                 errMsg = response.Message;
             }
+            return;
+        }
+        else if (string.IsNullOrWhiteSpace(response.Token))
+        {
+            // 2FA required
+            NavigationManager.NavigateTo($"verify-2fa?email={Uri.EscapeDataString(dto.Email)}&rememberMe={dto.RememberMe}", true);
             return;
         }
         NavigationManager.NavigateTo("parsed-claims", true);

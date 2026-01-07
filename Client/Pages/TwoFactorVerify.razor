@@ -1,0 +1,114 @@
+@page "/verify-2fa"
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using Microsoft.AspNetCore.WebUtilities
+
+
+<h3>Two-Factor Authentication</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+
+<EditForm Model="twoFactorModel" OnValidSubmit="SubmitCode">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="code">Enter 2FA Code</label>
+        <InputText id="code" class="form-control" @bind-Value="twoFactorModel.Code" />
+        <small class="form-text text-muted">Check your email for the code.</small>
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@IsSubmitting">
+        @(IsSubmitting ? "Verifying..." : "Verify")
+    </button>
+</EditForm>
+
+@code {
+    [Parameter] public string Email { get; set; } = null!;
+    [Parameter] public bool RememberMe { get; set; }
+    private string ErrorMessage = string.Empty;
+    private bool IsSubmitting = false;
+    private HttpClient httpClient { get; set; } = null!;
+
+    private TwoFactorModel twoFactorModel = new();
+
+
+    private class TwoFactorModel
+    {
+        [Required]
+        [StringLength(6, MinimumLength = 6, ErrorMessage = "Code must be 6 digits")]
+        public string Code { get; set; } = null!;
+
+        public string Email { get; set; } = null!;
+    }
+
+    protected override void OnInitialized()
+    {
+        httpClient = httpClientFactory.CreateClient(Constants.HTTP_CLIENT);
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("email", out var email))
+        {
+            twoFactorModel.Email = email!;
+        }
+
+        if (query.TryGetValue("rememberMe", out var remember))
+        {
+            bool.TryParse(remember, out var rememberBool);
+            RememberMe = rememberBool;
+        }
+    }
+
+    private async Task SubmitCode()
+    {
+        IsSubmitting = true;
+        ErrorMessage = null!;
+
+        try
+        {
+            var query = $"api/UMS/verify-2fa?email={twoFactorModel.Email}&code={twoFactorModel.Code}";
+            var response = await httpClient.GetAsync(query);
+            var jsonString = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(jsonString);
+
+            // string username = doc.RootElement.GetProperty("username").GetString();
+            string jwt = doc.RootElement.GetProperty("jwtToken").GetString()!;
+
+            if (response.IsSuccessStatusCode)
+            {
+                if (RememberMe)
+                {
+                    await localStorageService.SetItemAsync(JwtConfig.JWT_TOKEN_NAME, jwt);
+                }
+                else
+                {
+                    await sessionStorageService.SetItemAsync(JwtConfig.JWT_TOKEN_NAME, jwt);
+                }
+
+                ((ApiAuthenticationStateProvider)AuthenticationStateProvider).MarkUserAsAuthenticated(jwt);
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", jwt);
+
+                // Redirect to parsed claims
+                NavigationManager.NavigateTo("parsed-claims", true);
+            }
+            else
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                ErrorMessage = !string.IsNullOrEmpty(errorText) ? errorText : "Invalid 2FA code.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+}

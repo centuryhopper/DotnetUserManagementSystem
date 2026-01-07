@@ -41,7 +41,8 @@ public class AccountService : IAccountService
             }
             if (string.IsNullOrWhiteSpace(loginResponse.Token))
             {
-                throw new Exception(loginResponse.Message);
+                // System.Console.WriteLine("2FA required");
+                return new(Flag: true, Token: string.Empty, Message: loginResponse.Message);
             }
 
             if (dto.RememberMe)

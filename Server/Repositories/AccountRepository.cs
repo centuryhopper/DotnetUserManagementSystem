@@ -12,6 +12,7 @@ using Server.Entities;
 using Server.Utils;
 using Shared;
 using Microsoft.AspNetCore.WebUtilities;
+using MimeKit.Text;
 
 namespace Server.Repositories;
 
@@ -200,11 +201,31 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
             }
         }
 
-
         bool checkUserPasswords = await userManager.CheckPasswordAsync(getUser, dto.Password);
         if (!checkUserPasswords)
         {
             return new LoginResponse(false, null!, "Invalid email/password");
+        }
+
+        if (getUser.TwoFactorEnabled)
+        {
+            var twoFactorToken = await userManager.GenerateTwoFactorTokenAsync(
+                getUser,
+                TokenOptions.DefaultEmailProvider
+            );
+
+            var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+
+            Helpers.SendEmail(
+                subject: "2FA Verification",
+                senderEmail: smtpInfo[0],
+                senderPassword: smtpInfo[1],
+                body: Build2FAHtmlEmail(getUser, twoFactorToken),
+                receivers: [getUser.Email!],
+                textFormat: TextFormat.Html
+            );
+
+            return new LoginResponse(true, string.Empty, "2FA enabled. Verification code sent to your email.");
         }
 
         var getUserRole = await userManager.GetRolesAsync(getUser);
@@ -213,13 +234,51 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
         return new LoginResponse(true, token!, "Login completed");
     }
 
+    private string Build2FAHtmlEmail(IdentityUser identityUser, string twoFaToken)
+    {
+        StringBuilder emailBodyBuilder = new();
+        emailBodyBuilder.AppendLine("<html>");
+        emailBodyBuilder.AppendLine("<head>");
+        emailBodyBuilder.AppendLine("<style>");
+        emailBodyBuilder.AppendLine("body { font-family: Arial, sans-serif; color: #333; margin: 20px; }");
+        emailBodyBuilder.AppendLine("h1 { color: #007bff; }");
+        emailBodyBuilder.AppendLine("p { margin: 10px 0; }");
+        emailBodyBuilder.AppendLine(".code { font-size: 24px; font-weight: bold; color: #28a745; }");
+        emailBodyBuilder.AppendLine("</style>");
+        emailBodyBuilder.AppendLine("</head>");
+        emailBodyBuilder.AppendLine("<body>");
+
+        // Greeting
+        emailBodyBuilder.AppendLine($"<p>Dear {identityUser.Email},</p>");
+
+        // Main content
+        emailBodyBuilder.AppendLine("<p>Thank you for using our application!</p>");
+        emailBodyBuilder.AppendLine("<p>To complete your login process, please use the following verification code:</p>");
+
+        // Verification code
+        emailBodyBuilder.AppendLine($"<p class='code'>{twoFaToken}</p>");
+
+        // Instructions
+        emailBodyBuilder.AppendLine("<p>This code is valid for a short period, so please use it promptly.</p>");
+        emailBodyBuilder.AppendLine("<p>If you did not request this code, please ignore this email.</p>");
+
+        emailBodyBuilder.AppendLine("</body>");
+        emailBodyBuilder.AppendLine("</html>");
+
+
+
+        return emailBodyBuilder.ToString();
+
+    }
+
     public async Task<GeneralResponse> RegisterAsync(RegisterDTO dto)
     {
         // Copy data from RegisterViewModel to IdentityUser
         var user = new ApplicationUser
         {
             UserName = dto.Email,
-            Email = dto.Email
+            Email = dto.Email,
+            TwoFactorEnabled = true,
         };
 
         var roleToCreate = Constants.USER;

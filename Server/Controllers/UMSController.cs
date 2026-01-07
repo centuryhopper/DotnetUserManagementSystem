@@ -1,8 +1,12 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
 using Server.Entities;
 using Server.Utils;
 using Shared.Models;
@@ -52,7 +56,7 @@ public class UMSController(
 
             // var key = await userManager.GetAuthenticatorKeyAsync(getUser);
 
-            var mfaCodeLink = (env.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/verify-2fa?userId={getUser.Id}&code={code}";
+            var mfaCodeLink = (env.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/verify-2fa?email={getUser.Email}&code={code}";
 
             Helpers.SendEmail(subject: "Your 2FA Confirm Code", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: mfaCodeLink, receivers: [dto.Email]);
 
@@ -83,42 +87,35 @@ public class UMSController(
         });
     }
 
-    private async Task<GeneralResponse> HandleMFA(string email, string appName)
+    /*
+        an endpoint for turning on/off 2FA
+        POST: api/UMS/set-2fa        
+    */
+
+    [HttpPost("set-2fa/{email}/{enable2FA}")]
+    public async Task<IActionResult> SetTwoFactorAsync(string email, bool enable2FA)
     {
+        // TODO: make sure only the ums can call this endpoint
+        
         var user = await userManager.FindByEmailAsync(email);
-        var apps = await applicationsRepository.GetApplicationsByAppNameAndUserIdAsync(appName, user.Id);
-
-        // App-specific 2FA check
-        var anApp = apps.First(); // assuming one app per appName per user
-
-        // TODO: enable identity user two factor auth in the user controller
-        if (anApp.RequiresTwoFactor && user.TwoFactorEnabled)
+        if (user is null)
         {
-            // Send 2FA code (you could send via SMS, Email, or use authenticator apps)
-            var code = await userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
-
-            // NOTE: Send the token to the user via email or other means
-            // await emailSender.SendAsync(user.Email, "Your 2FA Code", $"Code: {code}");
-            var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
-
-            var mfaCodeLink = (env.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/verify-2fa?userId={user.Id}&code={code}";
-
-            Helpers.SendEmail(subject: "Your 2FA Confirm Code", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: mfaCodeLink, receivers: [email]);
-
-
-            // return Ok(new
-            // {
-            //     requiresTwoFactor = true,
-            //     message = "2FA code sent to your email.",
-            // });
+            return BadRequest("User not found.");
         }
+
+        var result = await userManager.SetTwoFactorEnabledAsync(user, enable2FA);
+        if (!result.Succeeded)
+        {
+            return BadRequest("Failed to update 2FA setting.");
+        }
+
+        return Ok(new { message = $"2FA {(enable2FA ? "enabled" : "disabled")} for user." });
     }
 
-
     [HttpGet("verify-2fa")]
-    public async Task<IActionResult> VerifyTwoFactorCode([FromQuery] string userId, [FromQuery] string code)
+    public async Task<IActionResult> VerifyTwoFactorCode([FromQuery] string email, [FromQuery] string code)
     {
-        var user = await userManager.FindByIdAsync(userId);
+        var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
             return BadRequest("User not found.");
@@ -133,31 +130,40 @@ public class UMSController(
         if (!isValid)
             return BadRequest("Invalid 2FA code.");
 
+        var userRoles = await userManager.GetRolesAsync(user);
+
         // Success – return user info
         return Ok(new
         {
             username = user.UserName,
             email = user.Email,
             userId = user.Id,
-            message = "2FA verification successful"
+            message = "2FA verification successful",
+            jwtToken = GenerateToken(user.Id, user.UserName, user.Email, userRoles.First())
         });
     }
 
-    [HttpPost("set-2fa")]
-    public async Task<IActionResult> SetAppTwoFactor([FromBody] App2FASettingsDTO dto)
+    private string GenerateToken(string userId, string userName, string email, string role)
     {
-        var user = await userManager.FindByEmailAsync(dto.Email);
-        var app = (await applicationsRepository.GetApplicationsByAppNameAndUserIdAsync(dto.AppName, user.Id)).FirstOrDefault();
-
-        if (app == null)
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(env.IsDevelopment() ? configuration["Jwt:Key"] : Environment.GetEnvironmentVariable("Jwt_Key")));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+        var userClaims = new[]
         {
-            return NotFound("Application not found.");
-        }
+            new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(ClaimTypes.Name, userName),
+            new Claim(ClaimTypes.Email, email),
+            new Claim(ClaimTypes.Role, role)
+        };
 
-        app.RequiresTwoFactor = dto.Enable2FA;
-        await applicationsRepository.EditApplicationAsync(app);
+        var token = new JwtSecurityToken(
+            issuer: env.IsDevelopment() ? configuration["Jwt:Issuer"] : Environment.GetEnvironmentVariable("Jwt_Issuer"),
+            audience: env.IsDevelopment() ? configuration["Jwt:Audience"] : Environment.GetEnvironmentVariable("Jwt_Audience"),
+            claims: userClaims,
+            expires: JwtConfig.JWT_TOKEN_EXP_DATETIME,
+            signingCredentials: credentials
+        );
 
-        return Ok(new { message = $"2FA {(dto.Enable2FA ? "enabled" : "disabled")} for app." });
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
 }
