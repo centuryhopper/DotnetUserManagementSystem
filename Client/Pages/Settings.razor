@@ -1,0 +1,76 @@
+@page "/settings"
+@using Client.Components
+@using System.Text.Json
+
+
+@* <h5 class="mt-4">Security</h5> *@
+
+@if (TwoFactorEnabled == null)
+{
+    <p>Loading settings...</p>
+}
+else
+{   
+    <div class="container">
+        <h3 class="text-center m-3">User Settings</h3>
+        <SettingsToggle Title="Two-Factor Authentication" Description="Adds an extra layer of security when signing in"
+            Enabled="@TwoFactorEnabled.GetValueOrDefault()" OnToggle="ToggleTwoFactor" />
+    </div>
+}
+
+@* <h5 class="mt-4">Notifications</h5>
+
+<SettingsToggle
+    Title="Login Alerts"
+    Description="Receive an email when a new device logs in"
+    Enabled="@LoginAlertsEnabled"
+    OnToggle="ToggleLoginAlerts" /> *@
+
+<StackedHandyToast @ref="stackedHandyToast" Title="Success" Message="Your operation completed successfully."
+    ToastType="HandyToastType.SUCCESS" Duration="5" Position="HandyToastPosition.CENTER_ALIGN" />
+
+@code {
+    private StackedHandyToast stackedHandyToast = default!;
+
+    private bool? TwoFactorEnabled = null;
+    // private bool LoginAlertsEnabled;
+    private HttpClient httpClient = null!;
+    private string email = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        httpClient = httpClientFactory.CreateClient(Constants.HTTP_CLIENT);
+        var authState = await ((ApiAuthenticationStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        var user = authState.User;
+        email = user.FindFirst(c => c.Type == ClaimTypes.Email)?.Value!;
+        var response = await httpClient.GetAsync(
+        $"api/UMS/get-2fa-status/{email}");
+        var jsonString = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(jsonString);
+        bool twoFactorEnabled = doc.RootElement.GetProperty("twoFactorEnabled").GetBoolean();
+
+        TwoFactorEnabled = twoFactorEnabled;
+    }
+
+    private async Task ToggleTwoFactor()
+    {
+        var response = await httpClient.PostAsync($"api/UMS/set-2fa/{email}/{!TwoFactorEnabled}", null);
+        var jsonString = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(jsonString);
+        var message = doc.RootElement.GetProperty("message").GetString();
+
+        if (response.IsSuccessStatusCode)
+        {
+            _ = stackedHandyToast.ShowToastAsync("Success", message, HandyToastType.SUCCESS);
+        }
+        else
+        {
+            _ = stackedHandyToast.ShowToastAsync("Error", message, HandyToastType.ERROR);
+        }
+
+        TwoFactorEnabled = !TwoFactorEnabled;
+    }
+
+
+}

@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
@@ -45,7 +46,7 @@ public class UMSController(
 
         // App-specific 2FA check
         var anApp = apps.First(); // assuming one app per appName per user
-        if (anApp.RequiresTwoFactor && getUser.TwoFactorEnabled)
+        if (/*anApp.RequiresTwoFactor &&*/ getUser.TwoFactorEnabled)
         {
             // Send 2FA code (you could send via SMS, Email, or use authenticator apps)
             var code = await userManager.GenerateTwoFactorTokenAsync(getUser, TokenOptions.DefaultEmailProvider);
@@ -56,6 +57,7 @@ public class UMSController(
 
             // var key = await userManager.GetAuthenticatorKeyAsync(getUser);
 
+            // TODO: create an endpoint link for verifying 2FA codes on an application level
             var mfaCodeLink = (env.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/verify-2fa?email={getUser.Email}&code={code}";
 
             Helpers.SendEmail(subject: "Your 2FA Confirm Code", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: mfaCodeLink, receivers: [dto.Email]);
@@ -87,29 +89,52 @@ public class UMSController(
         });
     }
 
-    /*
-        an endpoint for turning on/off 2FA
-        POST: api/UMS/set-2fa        
-    */
-
-    [HttpPost("set-2fa/{email}/{enable2FA}")]
-    public async Task<IActionResult> SetTwoFactorAsync(string email, bool enable2FA)
+    [HttpGet("get-2fa-status/{email}")]
+    public async Task<IActionResult> GetTwoFactorStatus(string email)
     {
-        // TODO: make sure only the ums can call this endpoint
-        
         var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
             return BadRequest("User not found.");
         }
 
-        var result = await userManager.SetTwoFactorEnabledAsync(user, enable2FA);
-        if (!result.Succeeded)
-        {
-            return BadRequest("Failed to update 2FA setting.");
-        }
+        return Ok(new { twoFactorEnabled = user.TwoFactorEnabled });
+    }
 
-        return Ok(new { message = $"2FA {(enable2FA ? "enabled" : "disabled")} for user." });
+    /*
+        an endpoint for turning on/off 2FA
+        POST: api/UMS/set-2fa        
+    */
+
+    [HttpPost("set-2fa/{email}/{enable2FA}")]
+    [EnableRateLimiting("FixedPolicy")]
+    [Authorize]
+    public async Task<IActionResult> SetTwoFactorAsync(string email, bool enable2FA)
+    {
+        // Only the ums can call this endpoint
+        var host = Request.Host.Value!.ToLower();
+
+        // System.Console.WriteLine("Request Host: " + host);
+        if (host.Contains("localhost") || host.Contains("https://dotnetusermanagementsystem-production.up.railway.app/"))
+        {
+            var user = await userManager.FindByEmailAsync(email);
+            if (user is null)
+            {
+                return BadRequest(new { message = "User not found." });
+            }
+
+            var result = await userManager.SetTwoFactorEnabledAsync(user, enable2FA);
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { message = "Failed to update 2FA status." });
+            }
+
+            return Ok(new { message = $"2FA {(enable2FA ? "enabled" : "disabled")} for user." });
+        }
+        else
+        {
+            return BadRequest("Unauthorized request.");
+        }
     }
 
     [HttpGet("verify-2fa")]

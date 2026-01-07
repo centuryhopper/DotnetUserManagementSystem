@@ -1,0 +1,36 @@
+
+
+
+<div class="card p-3 m-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <strong>@Title</strong>
+            <div class="text-muted small">@Description</div>
+        </div>
+
+        <button class="btn @(Enabled ? "btn-danger" : "btn-success")" @onclick="OnToggle" disabled="@IsLoading">
+            @(IsLoading
+                        ? "Updating..."
+                        : Enabled
+                        ? "Disable"
+                        : "Enable")
+        </button>
+    </div>
+</div>
+
+
+@code {
+    [Parameter] public string Title { get; set; } = null!;
+    [Parameter] public string Description { get; set; } = null!;
+    [Parameter] public bool Enabled { get; set; }
+    [Parameter] public EventCallback OnToggle { get; set; }
+
+    private bool IsLoading;
+
+    private async Task OnToggleClicked()
+    {
+        IsLoading = true;
+        await OnToggle.InvokeAsync();
+        IsLoading = false;
+    }
+}
