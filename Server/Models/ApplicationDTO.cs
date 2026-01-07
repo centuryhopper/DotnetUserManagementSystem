@@ -12,5 +12,4 @@ public partial class ApplicationDTO
     public string Roleid { get; set; } = null!;
 
     public string Applicationname { get; set; } = null!;
-    public bool RequiresTwoFactor { get; set; }
 }

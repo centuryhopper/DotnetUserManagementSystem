@@ -10,14 +10,12 @@ run:
 	cd ./Server && \
 	( [ -d "./wwwroot" ] && rm -rf ./wwwroot || echo "already removed wwwroot/ from the Server directory" ) && \
 	( [ -d "./Models" ] && rm -rf ./Models || echo "already removed Models/ from the Server directory" ) && \
-	/usr/bin/dotnet watch run
+	~/.dotnet/dotnet watch run
 
-deploy:
-	clean
-
+deploy: clean
 	# Publish and copy over published contents to server
 	cd ./Client && \
-	/usr/bin/dotnet publish -o output && \
+	~/.dotnet/dotnet publish -o output && \
 	cp -r ./output/wwwroot/* ../Server/wwwroot/ && \
 	rm -rf ./output/* && \
 	rmdir ./output/ || true
@@ -29,7 +27,7 @@ deploy:
 
 	# Git commit and push
 	git add .
-	git commit -m "$(m)" || echo "Nothing to commit"
+	git commit -m "updated server wwwroot and models"
 	git push
 
 
