@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using MimeKit.Text;
 using Server.Entities;
 using Server.Utils;
 using Shared.Models;
@@ -64,7 +65,6 @@ public class UMSController(
 
             return Ok(new
             {
-                requiresTwoFactor = true,
                 message = "2FA code sent to your email.",
             });
         }
@@ -90,6 +90,7 @@ public class UMSController(
     }
 
     [HttpGet("get-2fa-status/{email}")]
+    [EnableRateLimiting("FixedPolicy")]
     public async Task<IActionResult> GetTwoFactorStatus(string email)
     {
         var user = await userManager.FindByEmailAsync(email);
@@ -138,6 +139,7 @@ public class UMSController(
     }
 
     [HttpGet("verify-2fa")]
+    [EnableRateLimiting("FixedPolicy")]
     public async Task<IActionResult> VerifyTwoFactorCode([FromQuery] string email, [FromQuery] string code)
     {
         var user = await userManager.FindByEmailAsync(email);
@@ -153,7 +155,9 @@ public class UMSController(
         );
 
         if (!isValid)
+        {
             return BadRequest("Invalid 2FA code.");
+        }
 
         var userRoles = await userManager.GetRolesAsync(user);
 
@@ -166,6 +170,40 @@ public class UMSController(
             message = "2FA verification successful",
             jwtToken = GenerateToken(user.Id, user.UserName, user.Email, userRoles.First())
         });
+    }
+
+    [HttpGet("send-2fa-code/{email}")]
+    [EnableRateLimiting("FixedPolicy")]
+    public async Task<IActionResult> SendTwoFactorCodeAsync(string email)
+    {
+        var getUser = await userManager.FindByEmailAsync(email);
+        if (getUser is null)
+        {
+            return BadRequest("User not found.");
+        }
+
+        if (getUser.TwoFactorEnabled)
+        {
+            var twoFactorToken = await userManager.GenerateTwoFactorTokenAsync(
+                getUser,
+                TokenOptions.DefaultEmailProvider
+            );
+
+            var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+
+            Helpers.SendEmail(
+                subject: "2FA Verification",
+                senderEmail: smtpInfo[0],
+                senderPassword: smtpInfo[1],
+                body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken),
+                receivers: [getUser.Email!],
+                textFormat: TextFormat.Html
+            );
+
+            return Ok(new { message = "A 2FA code has been sent to your email.", flag = true });
+        }
+
+        return BadRequest(new { message = "2FA is not enabled for this user.", flag = false });
     }
 
     private string GenerateToken(string userId, string userName, string email, string role)

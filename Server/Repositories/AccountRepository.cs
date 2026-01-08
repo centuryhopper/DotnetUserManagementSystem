@@ -220,7 +220,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
                 subject: "2FA Verification",
                 senderEmail: smtpInfo[0],
                 senderPassword: smtpInfo[1],
-                body: Build2FAHtmlEmail(getUser, twoFactorToken),
+                body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken),
                 receivers: [getUser.Email!],
                 textFormat: TextFormat.Html
             );
@@ -232,43 +232,6 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
         string token = GenerateToken(getUser.Id, getUser.UserName, getUser.Email, getUserRole.First());
 
         return new LoginResponse(true, token!, "Login completed");
-    }
-
-    private string Build2FAHtmlEmail(IdentityUser identityUser, string twoFaToken)
-    {
-        StringBuilder emailBodyBuilder = new();
-        emailBodyBuilder.AppendLine("<html>");
-        emailBodyBuilder.AppendLine("<head>");
-        emailBodyBuilder.AppendLine("<style>");
-        emailBodyBuilder.AppendLine("body { font-family: Arial, sans-serif; color: #333; margin: 20px; }");
-        emailBodyBuilder.AppendLine("h1 { color: #007bff; }");
-        emailBodyBuilder.AppendLine("p { margin: 10px 0; }");
-        emailBodyBuilder.AppendLine(".code { font-size: 24px; font-weight: bold; color: #28a745; }");
-        emailBodyBuilder.AppendLine("</style>");
-        emailBodyBuilder.AppendLine("</head>");
-        emailBodyBuilder.AppendLine("<body>");
-
-        // Greeting
-        emailBodyBuilder.AppendLine($"<p>Dear {identityUser.Email},</p>");
-
-        // Main content
-        emailBodyBuilder.AppendLine("<p>Thank you for using our application!</p>");
-        emailBodyBuilder.AppendLine("<p>To complete your login process, please use the following verification code:</p>");
-
-        // Verification code
-        emailBodyBuilder.AppendLine($"<p class='code'>{twoFaToken}</p>");
-
-        // Instructions
-        emailBodyBuilder.AppendLine("<p>This code is valid for a short period, so please use it promptly.</p>");
-        emailBodyBuilder.AppendLine("<p>If you did not request this code, please ignore this email.</p>");
-
-        emailBodyBuilder.AppendLine("</body>");
-        emailBodyBuilder.AppendLine("</html>");
-
-
-
-        return emailBodyBuilder.ToString();
-
     }
 
     public async Task<GeneralResponse> RegisterAsync(RegisterDTO dto)
