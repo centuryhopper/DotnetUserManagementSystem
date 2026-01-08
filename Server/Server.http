@@ -3,6 +3,9 @@
 # GET {{Server_HostAddress}}/api/ums/verify-2fa?email=hello@email.com&code=344648
 # Accept: application/json
 
+GET {{Server_HostAddress}}/api/ums/resend-test
+Accept: application/json
+
 ###
 
 GET {{Server_HostAddress}}/api/UMS/send-2fa-code/hello@email.com

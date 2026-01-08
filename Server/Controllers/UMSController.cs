@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using MimeKit.Text;
 using Server.Entities;
+using Server.Services;
 using Server.Utils;
 using Shared.Models;
 
@@ -22,8 +23,22 @@ public class UMSController(
     RoleManager<ApplicationRole> roleManager,
     IApplicationsRepository applicationsRepository,
     IWebHostEnvironment env,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration,
+    IEmailService emailService) : ControllerBase
 {
+    [HttpGet("resend-test")]
+    [EnableRateLimiting("FixedPolicy")]
+    public async Task<IActionResult> ResendTestAsync()
+    {
+        await emailService.SendEmailAsync(
+            toEmail: "leotheasianlion@gmail.com",
+            subject: "Test Email from Resend",
+            body: "This is a test email sent using the Resend service."
+        );
+
+        return Ok(new GeneralResponse(true, "Email sent successfully."));
+    }
+
     [HttpGet("check-user/{email}/{pwd}")]
     [EnableRateLimiting("FixedPolicy")]
     public async Task<IActionResult> CheckUserExistsAsync(string email, string pwd)
@@ -209,16 +224,11 @@ public class UMSController(
                 TokenOptions.DefaultEmailProvider
             );
 
-            // var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
-
-            // await Helpers.SendEmailAsync(
-            //     subject: "2FA Verification",
-            //     senderEmail: smtpInfo[0],
-            //     senderPassword: smtpInfo[1],
-            //     body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken),
-            //     receivers: [getUser.Email!],
-            //     textFormat: TextFormat.Html
-            // );
+            await emailService.SendEmailAsync(
+                toEmail: email,
+                subject: "2FA Verification",
+                body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken)
+            );
 
             return Ok(new { message = twoFactorToken, flag = true });
         }

@@ -13,10 +13,11 @@ using Server.Utils;
 using Shared;
 using Microsoft.AspNetCore.WebUtilities;
 using MimeKit.Text;
+using Server.Services;
 
 namespace Server.Repositories;
 
-public class AccountRepository(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, IWebHostEnvironment webHostEnvironment) : IAccountRepository
+public class AccountRepository(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, IWebHostEnvironment webHostEnvironment, IEmailService emailService) : IAccountRepository
 {
     public async Task<GeneralResponse> ConfirmEmailAsync(ConfirmEmailDTO dto)
     {
@@ -214,15 +215,21 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
                 TokenOptions.DefaultEmailProvider
             );
 
-            var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+            // var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-            await Helpers.SendEmailAsync(
+            // await Helpers.SendEmailAsync(
+            //     subject: "2FA Verification",
+            //     senderEmail: smtpInfo[0],
+            //     senderPassword: smtpInfo[1],
+            //     body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken),
+            //     receivers: [getUser.Email!],
+            //     textFormat: TextFormat.Html
+            // );
+
+            await emailService.SendEmailAsync(
+                toEmail: dto.Email,
                 subject: "2FA Verification",
-                senderEmail: smtpInfo[0],
-                senderPassword: smtpInfo[1],
-                body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken),
-                receivers: [getUser.Email!],
-                textFormat: TextFormat.Html
+                body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken)
             );
 
             return new LoginResponse(true, string.Empty, "2FA enabled. Verification code sent to your email.");

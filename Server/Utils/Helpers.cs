@@ -4,13 +4,14 @@ using MailKit.Net.Smtp;
 using MimeKit.Text;
 using Microsoft.AspNetCore.Identity;
 using System.Text;
-using MailKit.Security;
 
 
 namespace Server.Utils;
 
 public static class Helpers
 {
+    
+
     public static void SendEmail(
         string subject,
         string body,
@@ -79,7 +80,7 @@ public static class Helpers
 
         try
         {
-            await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
+            await client.ConnectAsync("smtp.gmail.com", 465, true);
             await client.AuthenticateAsync(senderEmail, senderPassword);
             var res = await client.SendAsync(msg);
         }

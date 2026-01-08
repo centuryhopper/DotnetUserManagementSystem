@@ -12,9 +12,11 @@ using Microsoft.OpenApi;
 using NLog;
 using NLog.Web;
 using NpgsqlTypes;
+using Resend;
 using Server.Contexts;
 using Server.Entities;
 using Server.Repositories;
+using Server.Services;
 using Swashbuckle.AspNetCore.Filters;
 
 // MUST HAVE IT LIKE THIS FOR NLOG TO RECOGNIZE DOTNET USER-SECRETS INSTEAD OF HARDCODED DELIMIT PLACEHOLDER VALUE FROM APPSETTINGS.JSON
@@ -103,6 +105,18 @@ builder.Services.AddDbContext<UserManagementAdditionalContext>(options =>
                     Environment.GetEnvironmentVariable("UserManagementDB"))
         );
 
+builder.Services.AddOptions();
+builder.Services.AddHttpClient<ResendClient>();
+builder.Services.Configure<ResendClientOptions>(o =>
+{
+    o.ApiToken = builder.Environment.IsDevelopment()
+                ?
+                    builder.Configuration["Resend:ApiKey"]
+                :
+                    Environment.GetEnvironmentVariable("Resend_ApiKey");
+});
+builder.Services.AddTransient<IResend, ResendClient>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services
 .AddIdentity<ApplicationUser, ApplicationRole>()
