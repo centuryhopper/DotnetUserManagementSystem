@@ -164,9 +164,10 @@ public class UMSController(
         // Success – return user info
         return Ok(new
         {
+            userId = user.Id,
             username = user.UserName,
             email = user.Email,
-            userId = user.Id,
+            userRoles,
             message = "2FA verification successful",
             jwtToken = GenerateToken(user.Id, user.UserName, user.Email, userRoles.First())
         });
