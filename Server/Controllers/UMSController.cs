@@ -39,17 +39,17 @@ public class UMSController(
         return Ok(new GeneralResponse(true, "Email sent successfully."));
     }
 
-    [HttpGet("check-user/{email}/{pwd}")]
+    [HttpPost("check-user")]
     [EnableRateLimiting("FixedPolicy")]
-    public async Task<IActionResult> CheckUserExistsAsync(string email, string pwd)
+    public async Task<IActionResult> CheckUserExistsAsync([FromBody] LoginDTO loginDTO)
     {
-        var user = await userManager.FindByEmailAsync(email);
+        var user = await userManager.FindByEmailAsync(loginDTO.Email);
         if (user is null)
         {
             return NotFound(new GeneralResponse(false, "User not found."));
         }
 
-        bool isPasswordValid = await userManager.CheckPasswordAsync(user, pwd);
+        bool isPasswordValid = await userManager.CheckPasswordAsync(user, loginDTO.Password);
         if (!isPasswordValid)
         {
             return BadRequest(new GeneralResponse(false, "Invalid password."));
