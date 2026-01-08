@@ -31,16 +31,16 @@ public class UMSController(
         var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
-            return NotFound("User not found.");
+            return NotFound(new GeneralResponse(false, "User not found."));
         }
 
         bool isPasswordValid = await userManager.CheckPasswordAsync(user, pwd);
         if (!isPasswordValid)
         {
-            return BadRequest("Invalid password.");
+            return BadRequest(new GeneralResponse(false, "Invalid password."));
         }
 
-        return Ok("User exists and password is valid.");
+        return Ok(new GeneralResponse(true, "User exists and password is valid."));
     }
 
     // POST: api/UMS/get-user-credentials
