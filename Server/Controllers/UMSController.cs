@@ -179,7 +179,7 @@ public class UMSController(
         var getUser = await userManager.FindByEmailAsync(email);
         if (getUser is null)
         {
-            return BadRequest("User not found.");
+            return BadRequest(new { message = "User not found.", flag = false });
         }
 
         if (getUser.TwoFactorEnabled)
