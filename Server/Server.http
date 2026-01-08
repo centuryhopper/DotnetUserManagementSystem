@@ -3,7 +3,7 @@
 # GET {{Server_HostAddress}}/api/ums/verify-2fa?userId=a287e4ba-07ba-42a7-8fea-5302c5e55c8a&code=344648
 # Accept: application/json
 
-GET {{Server_HostAddress}}/api/UMS/send-2fa-code/lynnfavor7@gmail.com
+GET {{Server_HostAddress}}/api/UMS/send-2fa-code/hello@email.com
 Accept: application/json
 
 ###

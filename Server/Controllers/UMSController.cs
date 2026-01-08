@@ -191,7 +191,7 @@ public class UMSController(
 
             var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-            Helpers.SendEmail(
+            await Helpers.SendEmailAsync(
                 subject: "2FA Verification",
                 senderEmail: smtpInfo[0],
                 senderPassword: smtpInfo[1],

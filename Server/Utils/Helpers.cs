@@ -51,6 +51,48 @@ public static class Helpers
         }
     }
 
+    public static async Task SendEmailAsync(
+        string subject,
+        string body,
+        string senderEmail,
+        string senderPassword,
+        IEnumerable<string> receivers,
+        TextFormat textFormat = TextFormat.Plain
+    )
+    {
+        var msg = new MimeMessage();
+
+        msg.From.Add(new MailboxAddress("Automated Email Message", senderEmail));
+
+        foreach (var receiver in receivers)
+        {
+            msg.To.Add(MailboxAddress.Parse(receiver));
+        }
+
+        msg.Subject = subject;
+
+        msg.Body = new TextPart(textFormat) { Text = body, };
+
+        var client = new SmtpClient();
+        client.Timeout = 10_000; // 10 seconds
+
+        try
+        {
+            await client.ConnectAsync("smtp.gmail.com", 465, true);
+            await client.AuthenticateAsync(senderEmail, senderPassword);
+            var res = await client.SendAsync(msg);
+        }
+        catch (System.Exception ex)
+        {
+            System.Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            await client.DisconnectAsync(true);
+            client.Dispose();
+        }
+    }
+
     public static string Build2FAHtmlEmail(IdentityUser identityUser, string twoFaToken)
     {
         StringBuilder emailBodyBuilder = new();
