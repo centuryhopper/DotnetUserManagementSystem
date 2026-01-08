@@ -189,18 +189,18 @@ public class UMSController(
                 TokenOptions.DefaultEmailProvider
             );
 
-            var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+            // var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-            await Helpers.SendEmailAsync(
-                subject: "2FA Verification",
-                senderEmail: smtpInfo[0],
-                senderPassword: smtpInfo[1],
-                body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken),
-                receivers: [getUser.Email!],
-                textFormat: TextFormat.Html
-            );
+            // await Helpers.SendEmailAsync(
+            //     subject: "2FA Verification",
+            //     senderEmail: smtpInfo[0],
+            //     senderPassword: smtpInfo[1],
+            //     body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken),
+            //     receivers: [getUser.Email!],
+            //     textFormat: TextFormat.Html
+            // );
 
-            return Ok(new { message = "A 2FA code has been sent to your email.", flag = true });
+            return Ok(new { message = twoFactorToken, flag = true });
         }
 
         return BadRequest(new { message = "2FA is not enabled for this user.", flag = false });
