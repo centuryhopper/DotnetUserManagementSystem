@@ -216,7 +216,7 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
 
             var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-            Helpers.SendEmail(
+            await Helpers.SendEmailAsync(
                 subject: "2FA Verification",
                 senderEmail: smtpInfo[0],
                 senderPassword: smtpInfo[1],
