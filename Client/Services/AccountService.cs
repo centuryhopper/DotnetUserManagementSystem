@@ -39,6 +39,10 @@ public class AccountService : IAccountService
             {
                 throw new Exception(loginResponse!.Message);
             }
+            if (!loginResponse!.Flag)
+            {
+                return new HandyLoginResponse(Flag: false, Token: "", Message: loginResponse.Message);
+            }
             if (string.IsNullOrWhiteSpace(loginResponse.Token))
             {
                 // System.Console.WriteLine("2FA required");

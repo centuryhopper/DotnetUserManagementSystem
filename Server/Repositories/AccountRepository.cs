@@ -97,9 +97,16 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
 
                     var confirmationLink = (webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/confirm-email?userId={user.Id}&token={encodedToken}";
 
-                    var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+                    // var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-                    Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [dto.CurrentEmail]);
+                    // Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [dto.CurrentEmail]);
+
+                    await emailService.SendEmailAsync(
+                        toEmail: dto.CurrentEmail,
+                        subject: "Confirm Email",
+                        body: confirmationLink,
+                        textFormat: TextFormat.Plain
+                    );
 
                     successes.Add("Email updated! Please confirm it to login.");
                 }
@@ -174,9 +181,16 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
 
             var passwordResetLink = (webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/reset-password?email={user.Email}&token={encodedToken}";
 
-            var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+            // var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-            Helpers.SendEmail(subject: "password reset link", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: passwordResetLink, receivers: [dto.Email]);
+            // Helpers.SendEmail(subject: "password reset link", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: passwordResetLink, receivers: [dto.Email]);
+
+            await emailService.SendEmailAsync(
+                toEmail: dto.Email,
+                subject: "Password Reset Link",
+                body: passwordResetLink,
+                textFormat: TextFormat.Plain
+            );
 
             return new GeneralResponse(Flag: true, Message: "If you have an account with us, we have sent an email with the instructions to reset your password.");
         }
@@ -214,17 +228,6 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
                 getUser,
                 TokenOptions.DefaultEmailProvider
             );
-
-            // var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
-
-            // await Helpers.SendEmailAsync(
-            //     subject: "2FA Verification",
-            //     senderEmail: smtpInfo[0],
-            //     senderPassword: smtpInfo[1],
-            //     body: Helpers.Build2FAHtmlEmail(getUser, twoFactorToken),
-            //     receivers: [getUser.Email!],
-            //     textFormat: TextFormat.Html
-            // );
 
             await emailService.SendEmailAsync(
                 toEmail: dto.Email,
@@ -300,9 +303,16 @@ public class AccountRepository(UserManager<ApplicationUser> userManager, RoleMan
 
                 var confirmationLink = (webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/confirm-email?userId={user.Id}&token={encodedToken}";
 
-                var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+                // var smtpInfo = webHostEnvironment.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-                Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [user.Email]);
+                // Helpers.SendEmail(subject: "confirm email", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: confirmationLink, receivers: [user.Email]);
+
+                await emailService.SendEmailAsync(
+                    toEmail: user.Email,
+                    subject: "Confirm Email",
+                    body: confirmationLink,
+                    textFormat: TextFormat.Plain
+                );
 
                 return new GeneralResponse(Flag: true, Message: "Registration Successful! Please confirm your email to login.");
             }
