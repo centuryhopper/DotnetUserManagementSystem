@@ -24,6 +24,25 @@ public class UMSController(
     IWebHostEnvironment env,
     IConfiguration configuration) : ControllerBase
 {
+    [HttpGet("check-user/{email}/{pwd}")]
+    [EnableRateLimiting("FixedPolicy")]
+    public async Task<IActionResult> CheckUserExistsAsync(string email, string pwd)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            return NotFound("User not found.");
+        }
+
+        bool isPasswordValid = await userManager.CheckPasswordAsync(user, pwd);
+        if (!isPasswordValid)
+        {
+            return BadRequest("Invalid password.");
+        }
+
+        return Ok("User exists and password is valid.");
+    }
+
     // POST: api/UMS/get-user-credentials
     [HttpPost("get-user-credentials")]
     [EnableRateLimiting("FixedPolicy")]
