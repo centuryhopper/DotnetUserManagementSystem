@@ -150,7 +150,7 @@ public class UMSController(
         var host = Request.Host.Value!.ToLower();
 
         // System.Console.WriteLine("Request Host: " + host);
-        if (host.Contains("localhost") || host.Contains("https://dotnetusermanagementsystem-production.up.railway.app/"))
+        if (host.Contains("localhost") || host.Contains("leoums.dev"))
         {
             var user = await userManager.FindByEmailAsync(email);
             if (user is null)
