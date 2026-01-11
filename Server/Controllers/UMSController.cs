@@ -63,24 +63,53 @@ public class UMSController(
     [EnableRateLimiting("FixedPolicy")]
     public async Task<IActionResult> GetUserCredentialsAsync([FromBody] LoginDTO dto, string appName)
     {
-        var getUser = await userManager.FindByEmailAsync(dto.Email);
-        if (getUser is null)
+        try
         {
-            return Ok(new GeneralResponse(false, "The user with this email was not found in the UMS."));
+            var getUser = await userManager.FindByEmailAsync(dto.Email);
+            if (getUser is null)
+            {
+                return Ok(new GeneralResponse(false, "The user with this email was not found in the UMS."));
+            }
+
+            bool checkUserPasswords = await userManager.CheckPasswordAsync(getUser, dto.Password);
+            if (!checkUserPasswords)
+            {
+                return Ok(new GeneralResponse(false, "Invalid email/password"));
+            }
+
+            // grab records with the application name of "appName" query parameter
+            // that belong to the current user
+            var apps = await applicationsRepository.GetApplicationsByAppNameAndUserIdAsync(appName, getUser.Id);
+
+            // App-specific 2FA check
+            var anApp = apps.First(); // assuming one app per appName per user
+
+
+            // join them with roles table and get the role names
+            var roles = roleManager.Roles.AsEnumerable();
+
+            var getRoles = from app in apps
+                           join role in roles on app.Roleid equals role.Id
+                           select new
+                           {
+                               Role = role.Name,
+                           };
+
+
+            return Ok(new
+            {
+                username = getUser.UserName,
+                email = getUser.Email,
+                Roles = getRoles,
+                userId = getUser.Id,
+            });
+        }
+        catch (System.Exception ex)
+        {
+            return Ok(new GeneralResponse(false, "An error occurred: " + ex.Message));
         }
 
-        bool checkUserPasswords = await userManager.CheckPasswordAsync(getUser, dto.Password);
-        if (!checkUserPasswords)
-        {
-            return Ok(new GeneralResponse(false, "Invalid email/password"));
-        }
 
-        // grab records with the application name of "appName" query parameter
-        // that belong to the current user
-        var apps = await applicationsRepository.GetApplicationsByAppNameAndUserIdAsync(appName, getUser.Id);
-
-        // App-specific 2FA check
-        var anApp = apps.First(); // assuming one app per appName per user
         // if (/*anApp.RequiresTwoFactor &&*/ getUser.TwoFactorEnabled)
         // {
         //     // Send 2FA code (you could send via SMS, Email, or use authenticator apps)
@@ -103,24 +132,6 @@ public class UMSController(
         //     });
         // }
 
-        // join them with roles table and get the role names
-        var roles = roleManager.Roles.AsEnumerable();
-
-        var getRoles = from app in apps
-                       join role in roles on app.Roleid equals role.Id
-                       select new
-                       {
-                           Role = role.Name,
-                       };
-
-
-        return Ok(new
-        {
-            username = getUser.UserName,
-            email = getUser.Email,
-            Roles = getRoles,
-            userId = getUser.Id,
-        });
     }
 
     [HttpGet("get-2fa-status/{email}")]
