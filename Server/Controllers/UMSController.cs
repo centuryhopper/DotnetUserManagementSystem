@@ -81,27 +81,27 @@ public class UMSController(
 
         // App-specific 2FA check
         var anApp = apps.First(); // assuming one app per appName per user
-        if (/*anApp.RequiresTwoFactor &&*/ getUser.TwoFactorEnabled)
-        {
-            // Send 2FA code (you could send via SMS, Email, or use authenticator apps)
-            // var code = await userManager.GenerateTwoFactorTokenAsync(getUser, TokenOptions.DefaultEmailProvider);
+        // if (/*anApp.RequiresTwoFactor &&*/ getUser.TwoFactorEnabled)
+        // {
+        //     // Send 2FA code (you could send via SMS, Email, or use authenticator apps)
+        //     // var code = await userManager.GenerateTwoFactorTokenAsync(getUser, TokenOptions.DefaultEmailProvider);
 
-            // NOTE: Send the token to the user via email or other means
-            // await emailSender.SendAsync(user.Email, "Your 2FA Code", $"Code: {code}");
-            // var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
+        //     // NOTE: Send the token to the user via email or other means
+        //     // await emailSender.SendAsync(user.Email, "Your 2FA Code", $"Code: {code}");
+        //     // var smtpInfo = env.IsDevelopment() ? configuration.GetConnectionString("smtp_client").Split("|") : Environment.GetEnvironmentVariable("smtp_client").Split("|");
 
-            // var key = await userManager.GetAuthenticatorKeyAsync(getUser);
+        //     // var key = await userManager.GetAuthenticatorKeyAsync(getUser);
 
-            // TODO: create an endpoint link for verifying 2FA codes on an application level
-            // var mfaCodeLink = (env.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/verify-2fa?email={getUser.Email}&code={code}";
+        //     // TODO: create an endpoint link for verifying 2FA codes on an application level
+        //     // var mfaCodeLink = (env.IsDevelopment() ? configuration.GetConnectionString("BaseUrl") : Environment.GetEnvironmentVariable("BaseUrl")) + $"/verify-2fa?email={getUser.Email}&code={code}";
 
-            // Helpers.SendEmail(subject: "Your 2FA Confirm Code", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: mfaCodeLink, receivers: [dto.Email]);
+        //     // Helpers.SendEmail(subject: "Your 2FA Confirm Code", senderEmail: smtpInfo[0], senderPassword: smtpInfo[1], body: mfaCodeLink, receivers: [dto.Email]);
 
-            return Ok(new
-            {
-                message = "2FA code sent to your email.",
-            });
-        }
+        //     return Ok(new
+        //     {
+        //         message = "2FA code sent to your email.",
+        //     });
+        // }
 
         // join them with roles table and get the role names
         var roles = roleManager.Roles.AsEnumerable();
