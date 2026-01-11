@@ -90,19 +90,16 @@ public class UMSController(
 
             var getRoles = from app in apps
                            join role in roles on app.Roleid equals role.Id
-                           select new
-                           {
-                               Role = role.Name,
-                           };
+                           select role.Name;
 
 
-            return Ok(new
+            return Ok(new GeneralResponseWithPayload<UserCredentialsDTO>(true, "User credentials verified.", new UserCredentialsDTO
             {
-                username = getUser.UserName,
-                email = getUser.Email,
+                Username = getUser.UserName,
+                Email = getUser.Email,
                 Roles = getRoles,
-                userId = getUser.Id,
-            });
+                UserId = getUser.Id,
+            }));
         }
         catch (System.Exception ex)
         {
