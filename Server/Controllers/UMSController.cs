@@ -93,13 +93,14 @@ public class UMSController(
                            select role.Name;
 
 
-            return Ok(new GeneralResponseWithPayload<UserCredentialsDTO>(true, "User credentials verified.", new UserCredentialsDTO
+            return Ok(new
             {
-                Username = getUser.UserName,
-                Email = getUser.Email,
-                Roles = getRoles,
-                UserId = getUser.Id,
-            }));
+                flag = true,
+                username = getUser.UserName,
+                email = getUser.Email,
+                roles = getRoles,
+                userId = getUser.Id,
+            });
         }
         catch (System.Exception ex)
         {

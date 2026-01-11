@@ -14,7 +14,7 @@ namespace Server.Repositories;
 
 public class ApplicationsRepository(UserManagementAdditionalContext ctx, IConfiguration configuration, IWebHostEnvironment webHostEnvironment) : IApplicationsRepository
 {
-    public async Task<GeneralResponseWithPayload<string>> AddApplicationAsync(ApplicationDTO dto)
+    public async Task<GeneralResponseWithPayload> AddApplicationAsync(ApplicationDTO dto)
     {
         try
         {
@@ -22,17 +22,17 @@ public class ApplicationsRepository(UserManagementAdditionalContext ctx, IConfig
             var app = dto.ToEntity();
             await ctx.Applications.AddAsync(app);
             await ctx.SaveChangesAsync();
-            return new GeneralResponseWithPayload<string>(true, "Application Added", app.Applicationid.ToString());
+            return new GeneralResponseWithPayload(true, "Application Added", app.Applicationid.ToString());
         }
         catch (System.Exception ex)
         {
-            return new GeneralResponseWithPayload<string>(false, ex.Message, "");
+            return new GeneralResponseWithPayload(false, ex.Message, "");
         }
     }
 
-    public async Task<IEnumerable<GeneralResponseWithPayload<string>>> AddApplicationsAsync(IEnumerable<ApplicationDTO> dtos)
+    public async Task<IEnumerable<GeneralResponseWithPayload>> AddApplicationsAsync(IEnumerable<ApplicationDTO> dtos)
     {
-        List<GeneralResponseWithPayload<string>> responses = [];
+        List<GeneralResponseWithPayload> responses = [];
         foreach (var dto in dtos)
         {
             responses.Add(await AddApplicationAsync(dto));
@@ -59,24 +59,24 @@ public class ApplicationsRepository(UserManagementAdditionalContext ctx, IConfig
         }
     }
 
-    public async Task<GeneralResponseWithPayload<string>> EditApplicationAsync(ApplicationDTO dto)
+    public async Task<GeneralResponseWithPayload> EditApplicationAsync(ApplicationDTO dto)
     {
         try
         {
             var app = await ctx.Applications.FindAsync(dto.Applicationid);
             if (app == null)
             {
-                return new GeneralResponseWithPayload<string>(false, "application not found", "");
+                return new GeneralResponseWithPayload(false, "application not found", "");
             }
             app.Applicationname = dto.Applicationname;
             app.Roleid = dto.Roleid;
             app.Userid = dto.Userid;
             await ctx.SaveChangesAsync();
-            return new GeneralResponseWithPayload<string>(true, "Application updated", dto.Applicationid.ToString());
+            return new GeneralResponseWithPayload(true, "Application updated", dto.Applicationid.ToString());
         }
         catch (System.Exception ex)
         {
-            return new GeneralResponseWithPayload<string>(false, ex.Message, "");
+            return new GeneralResponseWithPayload(false, ex.Message, "");
         }
     }
 
