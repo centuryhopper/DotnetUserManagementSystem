@@ -66,13 +66,13 @@ public class UMSController(
         var getUser = await userManager.FindByEmailAsync(dto.Email);
         if (getUser is null)
         {
-            return BadRequest("The user with this email was not found in the UMS.");
+            return Ok(new GeneralResponse(false, "The user with this email was not found in the UMS."));
         }
 
         bool checkUserPasswords = await userManager.CheckPasswordAsync(getUser, dto.Password);
         if (!checkUserPasswords)
         {
-            return BadRequest("Invalid email/password");
+            return Ok(new GeneralResponse(false, "Invalid email/password"));
         }
 
         // grab records with the application name of "appName" query parameter
