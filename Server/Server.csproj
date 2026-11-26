@@ -10,7 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Radzen.Blazor" Version="13.2.1" />
     <PackageReference Include="NewtonSoft.Json" Version="13.0.4" />
     <PackageReference Include="Resend" Version="0.2.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
