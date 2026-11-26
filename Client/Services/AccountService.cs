@@ -9,6 +9,7 @@ using Client.Providers;
 using Client.Utils;
 using Microsoft.AspNetCore.Components.Authorization;
 using Shared.Models;
+using static Shared.Models.ServiceResponses;
 
 
 namespace Client.Services;
@@ -28,20 +29,20 @@ public class AccountService : IAccountService
         this.sessionStorageService = sessionStorageService;
     }
 
-    public async Task<HandyLoginResponse> LoginAsync(LoginDTO dto)
+    public async Task<LoginResponse> LoginAsync(LoginDTO dto)
     {
         try
         {
             //System.Console.WriteLine("logging in");
             var response = await httpClient.PostAsJsonAsync("api/Account/login", dto);
-            var loginResponse = await response.Content.ReadFromJsonAsync<HandyLoginResponse>();
+            var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception(loginResponse!.Message);
             }
             if (!loginResponse!.Flag)
             {
-                return new HandyLoginResponse(Flag: false, Token: "", Message: loginResponse.Message);
+                return new LoginResponse(Flag: false, Token: "", Message: loginResponse.Message);
             }
             if (string.IsNullOrWhiteSpace(loginResponse.Token))
             {
@@ -65,7 +66,7 @@ public class AccountService : IAccountService
         }
         catch (Exception ex)
         {
-            return new HandyLoginResponse(Flag: false, Token: "", Message: ex.Message);
+            return new LoginResponse(Flag: false, Token: "", Message: ex.Message);
         }
     }
 
@@ -77,12 +78,12 @@ public class AccountService : IAccountService
         httpClient.DefaultRequestHeaders.Authorization = null;
     }
 
-    public async Task<HandyGeneralResponse> RegisterAsync(RegisterDTO dto)
+    public async Task<GeneralResponse> RegisterAsync(RegisterDTO dto)
     {
         try
         {
             var response = await httpClient.PostAsJsonAsync("api/Account/register", dto);
-            var registerResponse = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
+            var registerResponse = await response.Content.ReadFromJsonAsync<GeneralResponse>();
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception(registerResponse!.Message);
@@ -90,23 +91,23 @@ public class AccountService : IAccountService
 
             if (!registerResponse.Flag)
             {
-                return new HandyGeneralResponse(false, registerResponse!.Message);
+                return new GeneralResponse(false, registerResponse!.Message);
             }
 
-            return new HandyGeneralResponse(true, registerResponse!.Message);
+            return new GeneralResponse(true, registerResponse!.Message);
         }
         catch (Exception ex)
         {
-            return new HandyGeneralResponse(false, ex.Message);
+            return new GeneralResponse(false, ex.Message);
         }
     }
 
-    public async Task<HandyGeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto)
+    public async Task<GeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto)
     {
         try
         {
             var response = await httpClient.PostAsJsonAsync("api/Account/forgot-password", dto);
-            var forgotPasswordResponse = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
+            var forgotPasswordResponse = await response.Content.ReadFromJsonAsync<GeneralResponse>();
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception(forgotPasswordResponse!.Message);
@@ -114,23 +115,23 @@ public class AccountService : IAccountService
 
             if (!forgotPasswordResponse.Flag)
             {
-                return new HandyGeneralResponse(false, forgotPasswordResponse!.Message);
+                return new GeneralResponse(false, forgotPasswordResponse!.Message);
             }
 
-            return new HandyGeneralResponse(true, forgotPasswordResponse!.Message);
+            return new GeneralResponse(true, forgotPasswordResponse!.Message);
         }
         catch (Exception ex)
         {
-            return new HandyGeneralResponse(false, ex.Message);
+            return new GeneralResponse(false, ex.Message);
         }
     }
 
-    public async Task<HandyGeneralResponse> ResetPasswordAsync(ResetPasswordDTO dto)
+    public async Task<GeneralResponse> ResetPasswordAsync(ResetPasswordDTO dto)
     {
         try
         {
             var response = await httpClient.PostAsJsonAsync("api/Account/reset-password", dto);
-            var resetPasswordResponse = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
+            var resetPasswordResponse = await response.Content.ReadFromJsonAsync<GeneralResponse>();
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception(resetPasswordResponse!.Message);
@@ -138,23 +139,23 @@ public class AccountService : IAccountService
 
             if (!resetPasswordResponse.Flag)
             {
-                return new HandyGeneralResponse(false, resetPasswordResponse!.Message);
+                return new GeneralResponse(false, resetPasswordResponse!.Message);
             }
 
-            return new HandyGeneralResponse(true, resetPasswordResponse!.Message);
+            return new GeneralResponse(true, resetPasswordResponse!.Message);
         }
         catch (Exception ex)
         {
-            return new HandyGeneralResponse(false, ex.Message);
+            return new GeneralResponse(false, ex.Message);
         }
     }
 
-    public async Task<HandyGeneralResponse> EditProfileAsync(ProfileDTO dto)
+    public async Task<GeneralResponse> EditProfileAsync(ProfileDTO dto)
     {
         try
         {
             var response = await httpClient.PatchAsJsonAsync("api/Account/edit-profile", dto);
-            var editProfileResponse = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
+            var editProfileResponse = await response.Content.ReadFromJsonAsync<GeneralResponse>();
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception(editProfileResponse!.Message);
@@ -162,14 +163,14 @@ public class AccountService : IAccountService
 
             if (!editProfileResponse.Flag)
             {
-                return new HandyGeneralResponse(false, editProfileResponse!.Message);
+                return new GeneralResponse(false, editProfileResponse!.Message);
             }
 
-            return new HandyGeneralResponse(true, editProfileResponse!.Message);
+            return new GeneralResponse(true, editProfileResponse!.Message);
         }
         catch (Exception ex)
         {
-            return new HandyGeneralResponse(false, ex.Message);
+            return new GeneralResponse(false, ex.Message);
         }
     }
 }

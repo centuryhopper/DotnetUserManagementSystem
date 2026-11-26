@@ -1,19 +1,41 @@
 @page "/users"
-@using Client.Models
+@using System.Reflection
 @using Client.Services
-@using HandyBlazorComponents.Models
+@using Radzen
+@using Radzen.Blazor
 @attribute [Authorize(Roles = Shared.Constants.ADMIN)]
 
 <div class="text-center m-5">
     <h2><b>All Users</b></h2>
 </div>
 <hr />
-<div class="text-center overflow-auto m-3">
+<div class="m-3">
     @if (doneLoadingLst)
     {
-        <CascadingValue Name="HandyGridState" Value="usersGridStateService" IsFixed="true">
-            <DynamicHandyGrid TItem="UserDTO" TEntity="UsersGridEntity" Items="Items"/>
-        </CascadingValue>
+        <RadzenDataGrid TItem="UserDTO" Data="@users" AllowPaging="true" PageSize="5" AllowSorting="true">
+            <Columns>
+                @* One column per UserDTO property (except Id), like DynamicHandyGrid did *@
+                @foreach (var prop in columns)
+                {
+                    var isList = IsCollection(prop.PropertyType);
+
+                    <RadzenDataGridColumn @key="prop.Name" Property="@prop.Name" Title="@prop.Name" Sortable="@(!isList)"
+                                          Filterable="@(!isList)">
+                        <Template Context="user">
+                            @if (isList)
+                            {
+                                @string.Join(", ", ((System.Collections.IEnumerable?)prop.GetValue(user) ??
+                                    Array.Empty<object>()).Cast<object>())
+                            }
+                            else
+                            {
+                                @prop.GetValue(user)
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
     }
     else
     {
@@ -25,35 +47,31 @@
     }
 </div>
 
-<HandyToast @ref="handyToast" Title="Success" Message="Your operation completed successfully."
-    ToastType="HandyToastType.SUCCESS" Duration="5" />
-
 
 @code {
     private bool doneLoadingLst = false;
-    private HttpClient httpClient { get; set; }
-    private UsersGridStateService usersGridStateService = default!;
-    private HandyToast handyToast = default!;
-    List<UsersGridEntity> Items = [];
+    private HttpClient httpClient { get; set; } = default!;
+    private List<UserDTO> users = [];
 
+    private static readonly string[] hiddenColumns = [nameof(UserDTO.Id)];
 
+    private static readonly List<PropertyInfo> columns = typeof(UserDTO)
+        .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+        .Where(p => !hiddenColumns.Contains(p.Name))
+        .ToList();
+
+    // true for List<string>, string[], etc. (but not string, which is also IEnumerable)
+    private static bool IsCollection(Type t) =>
+        t != typeof(string) && typeof(System.Collections.IEnumerable).IsAssignableFrom(t);
+    
     protected override async Task OnInitializedAsync()
     {
         httpClient = httpClientFactory.CreateClient(Constants.HTTP_CLIENT);
-        Items = (await httpClient.GetFromJsonAsync<IEnumerable<UserDTO>>("api/Users/get-users")).Select(p => new UsersGridEntity(Object: p)).OrderBy(p => p.Object.Id).ToList();
-        usersGridStateService = new(
-        Items: Items,
-        PageSize: 5,
-        ShowRowIndex: false,
-        ShowFilters: false,
-        CanAddNewItems: false,
-        ColumnsToHide: [nameof(UserDTO.Id)]
-        );
+
+        users = ((await httpClient.GetFromJsonAsync<List<UserDTO>>("api/Users/get-users")) ?? [])
+            .OrderBy(u => u.Id)
+            .ToList();
 
         doneLoadingLst = true;
-
-        var authState = await ((ApiAuthenticationStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        var user = authState.User;
     }
-
 }

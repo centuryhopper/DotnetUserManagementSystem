@@ -1,9 +1,8 @@
 @page "/register"
-@using HandyBlazorComponents.Models
+@using Client.Components
 @using Microsoft.AspNetCore.Components.Forms
 @inject IAccountService accountService
-@inject NavigationManager NavigationManager
-@inject IHttpClientFactory httpClientFactory
+
 
 <div class="container-fluid">
     <EditForm Model="@dto" OnValidSubmit="HandleSubmit">
@@ -13,12 +12,14 @@
                 <DataAnnotationsValidator />
                 <p class="form-group">
                     <label for="FirstName">First Name</label>
-                    <InputText id="FirstName" class="form-control" @bind-Value="dto.FirstName" aria-placeholder="First Name" />
+                    <InputText id="FirstName" class="form-control" @bind-Value="dto.FirstName"
+                               aria-placeholder="First Name" />
                     <ValidationMessage For="@(() => dto.FirstName)" />
                 </p>
                 <p class="form-group">
                     <label for="LastName">Last Name</label>
-                    <InputText id="LastName" class="form-control" @bind-Value="dto.LastName" aria-placeholder="Last Name"/>
+                    <InputText id="LastName" class="form-control" @bind-Value="dto.LastName"
+                               aria-placeholder="Last Name" />
                     <ValidationMessage For="@(() => dto.LastName)" />
                 </p>
                 <p class="form-group">
@@ -33,72 +34,61 @@
                         <div class="input-group-append">
                             <div class="input-group-addon">
                                 <span class="input-group-text">
-                                    <a 
-                                    @onclick="@((m)=> TogglePasswordVisibility(m))"@onkeypress="TogglePasswordVisibility" @onkeypress:preventDefault="true" tabindex="0" style="color: black; cursor: pointer;">
+                                    <a @onclick="@((m) => TogglePasswordVisibility(m))"
+                                       @onkeypress="TogglePasswordVisibility" @onkeypress:preventDefault="true"
+                                       tabindex="0" style="color: black; cursor: pointer;">
                                         <i class="fa @iconClass field-icon m-1" aria-hidden="true"></i></a>
-                                </span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <ValidationMessage For="@(() => dto.Password)" />
-                </p>
-
-                <p class="form-group">
-                    <label for="ConfirmPassword">Confirm Password</label>
-                    <div class="input-group" id="show_hide_password">
-                        <InputText id="ConfirmPassword" class="form-control" @bind-Value="dto.ConfirmPassword" type="@passwordType" />
-                        <div class="input-group-append">
-                            <div class="input-group-addon">
-                                <span class="input-group-text">
-                                    <a 
-                                    @onclick="@((m)=> TogglePasswordVisibility(m))"@onkeypress="TogglePasswordVisibility" @onkeypress:preventDefault="true" tabindex="0" style="color: black; cursor: pointer;">
-                                        <i class="fa @iconClass field-icon m-1" aria-hidden="true"></i></a>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <ValidationMessage For="@(() => dto.ConfirmPassword)" />
-                </p>
-            </div>
-        </div>
-        <div class="m-3">
-            <p class="m-3">
-                <button disabled="@loading" class="btn btn-primary">
-                    @if (loading)
-                    {
-                        <span class="spinner-border spinner-border-sm mr-1"></span>
-                    }
-                    Register
-                </button>
-                @if (!string.IsNullOrWhiteSpace(errMsg))
-                {
-                    <p class="text-danger m-3">
-                        @errMsg
+                        <ValidationMessage For="@(() => dto.Password)" />
                     </p>
-                }
+
+                    <p class="form-group">
+                        <label for="ConfirmPassword">Confirm Password</label>
+                        <div class="input-group" id="show_hide_password">
+                            <InputText id="ConfirmPassword" class="form-control" @bind-Value="dto.ConfirmPassword"
+                                       type="@passwordType" />
+                            <div class="input-group-append">
+                                <div class="input-group-addon">
+                                    <span class="input-group-text">
+                                        <a @onclick="@((m) => TogglePasswordVisibility(m))"
+                                           @onkeypress="TogglePasswordVisibility" @onkeypress:preventDefault="true"
+                                           tabindex="0" style="color: black; cursor: pointer;">
+                                            <i class="fa @iconClass field-icon m-1" aria-hidden="true"></i></a>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <ValidationMessage For="@(() => dto.ConfirmPassword)" />
+                        </p>
+                    </div>
+                </div>
+                <div class="m-3">
+                    <p class="m-3">
+                        <button disabled="@loading" class="btn btn-primary">
+                            @if (loading)
+                            {
+                                <span class="spinner-border spinner-border-sm mr-1"></span>
+                            }
+                            Register
+                        </button>
+                        <CoolDownMessageDisplay />
+                    </p>
+                </div>
+            </EditForm>
+        </div>
+        <div class="text-center">
+            <p>Already have an account?
+                <a href="login" target="_blank" rel="noopener noreferrer">
+                    Sign In
+                </a>
             </p>
         </div>
-    </EditForm>
-</div>
-<div class="text-center">
-    <p>Already have an account?
-        <a href="login" target="_blank"
-            rel="noopener noreferrer">
-            Sign In
-        </a>
-    </p>
-</div>
-
-<NotificationModal @ref="notificationModal" />
-<CooldownTimer @ref="cooldownTimer" CooldownTime="30" MaxAttempts="5" OnCooldownComplete="OnCooldownComplete" />
-<HandyToast @ref="handyToast" Title="Success" Message="Your operation completed successfully."
-    ToastType="HandyToastType.SUCCESS" Duration="5" />
 
 
 @code {
-    private HandyToast handyToast = default!;
-    private NotificationModal notificationModal = default!;
-    private CooldownTimer cooldownTimer = default!;
     private RegisterDTO dto = new();
     private bool isPasswordVisible = false;
     private string passwordType => isPasswordVisible ? "text" : "password";
@@ -106,11 +96,6 @@
     private bool loading = false;
 
     private string errMsg = "";
-
-    private void OnCooldownComplete()
-    {
-        StateHasChanged();
-    }
 
     private void TogglePasswordVisibility(MouseEventArgs mouseEventArgs)
     {
@@ -132,36 +117,18 @@
 
     private async Task HandleSubmit()
     {
-        if (cooldownTimer.IsCoolingDown)
-        {
-            errMsg = "";
-            return;
-        }
-
         loading = true;
-        errMsg = ""; // Clear any previous error messages
 
-        // Handle login logic here
-        // Console.WriteLine("showing modal");
         var response = await accountService.RegisterAsync(dto);
         loading = false;
         if (!response.Flag)
         {
-            cooldownTimer.IncrementSubmissionCount();
-            if (!cooldownTimer.IsCoolingDown)
-            {
-                errMsg = response.Message;
-            }
+            await jsRuntime.InvokeVoidAsync("cooldown.generateAttemptsNotice");
+            await toastService.Error("Error", response.Message);
             return;
         }
 
-        _ = handyToast.ShowToastAsync("Success", response.Message, HandyToastType.SUCCESS);
+        await toastService.Success("Success", response.Message);
         dto = new();
-
-        // NavigationManager.NavigateTo("login", true);
-    }
-    private async Task HandleErrors()
-    {
-        Console.WriteLine("error!");
     }
 }

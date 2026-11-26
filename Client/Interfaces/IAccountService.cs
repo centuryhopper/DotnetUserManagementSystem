@@ -1,16 +1,17 @@
 
 using Shared.Models;
+using static Shared.Models.ServiceResponses;
 
 
 namespace Client.Interfaces;
 
 public interface IAccountService
 {
-    Task<HandyGeneralResponse> ResetPasswordAsync(ResetPasswordDTO dto);
-    Task<HandyGeneralResponse> EditProfileAsync(ProfileDTO dto);
-    Task<HandyLoginResponse> LoginAsync(LoginDTO dto);
-    Task<HandyGeneralResponse> RegisterAsync(RegisterDTO dto);
-    Task<HandyGeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto);
+    Task<GeneralResponse> ResetPasswordAsync(ResetPasswordDTO dto);
+    Task<GeneralResponse> EditProfileAsync(ProfileDTO dto);
+    Task<LoginResponse> LoginAsync(LoginDTO dto);
+    Task<GeneralResponse> RegisterAsync(RegisterDTO dto);
+    Task<GeneralResponse> ForgotPasswordAsync(ForgotPasswordDTO dto);
     Task LogoutAsync();
 }
 

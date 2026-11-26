@@ -26,11 +26,7 @@ else
     Enabled="@LoginAlertsEnabled"
     OnToggle="ToggleLoginAlerts" /> *@
 
-<StackedHandyToast @ref="stackedHandyToast" Title="Success" Message="Your operation completed successfully."
-    ToastType="HandyToastType.SUCCESS" Duration="5" Position="HandyToastPosition.CENTER_ALIGN" />
-
 @code {
-    private StackedHandyToast stackedHandyToast = default!;
 
     private bool? TwoFactorEnabled = null;
     // private bool LoginAlertsEnabled;
@@ -62,11 +58,11 @@ else
 
         if (response.IsSuccessStatusCode)
         {
-            _ = stackedHandyToast.ShowToastAsync("Success", message, HandyToastType.SUCCESS);
+            await toastService.Success("Success", msg: message ?? "");
         }
         else
         {
-            _ = stackedHandyToast.ShowToastAsync("Error", message, HandyToastType.ERROR);
+            await toastService.Error("Error", msg: message ?? "");
         }
 
         TwoFactorEnabled = !TwoFactorEnabled;

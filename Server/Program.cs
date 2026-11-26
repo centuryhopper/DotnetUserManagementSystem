@@ -9,8 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
-using NLog;
-using NLog.Web;
 using NpgsqlTypes;
 using Resend;
 using Server.Contexts;
@@ -18,8 +16,6 @@ using Server.Entities;
 using Server.Repositories;
 using Server.Services;
 using Swashbuckle.AspNetCore.Filters;
-
-// MUST HAVE IT LIKE THIS FOR NLOG TO RECOGNIZE DOTNET USER-SECRETS INSTEAD OF HARDCODED DELIMIT PLACEHOLDER VALUE FROM APPSETTINGS.JSON
 
 
 /*
@@ -44,21 +40,8 @@ UPDATE COMMAND TO ENABLE 2FA FOR A USER:
 
 */
 
-// #if DEBUG
-//     var logger = LogManager.Setup().LoadConfigurationFromFile("nlog_dev.config").GetCurrentClassLogger();
-// #else
-//     var logger = LogManager.Setup().LoadConfigurationFromFile("nlog.config").GetCurrentClassLogger();
-// #endif
-
-
-// try
-// {
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-// builder.Logging.ClearProviders();
-// builder.Host.UseNLog();
 
 
 builder.Services.AddControllers();
@@ -210,12 +193,7 @@ app.MapFallbackToFile("index.html");
 
 
 app.Run();
-// }
-//  catch (Exception ex)
-// {
-//     logger.Error(ex, "Stopped program because of exception: " + ex);
-//     throw ex;
-// }
-// finally {
-//     LogManager.Shutdown();
-// }
+
+
+
+

@@ -1,6 +1,4 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject NavigationManager Navigation
 @inherits LayoutComponentBase
 
 
@@ -57,14 +55,17 @@
         var authState = await ((ApiAuthenticationStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
     }
-    private async Task Logout()
+
+    private const int IdleTimeoutMs = 30 * 60 * 1000; // 30 min
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Implement your logout logic here
-        // For example, you might call a logout API and then navigate to the login page
-        await Task.Run(() =>
-        {
-            // Custom logout logic here
-        });
-        Navigation.NavigateTo("login", forceLoad: true);
+        if (!firstRender) return;
+
+        // 1 = JWT expiry monitor, 2 = idle timer
+        await jsRuntime.InvokeVoidAsync("SESSION_FUNCTIONS.run",
+            NavigationManager.BaseUri, IdleTimeoutMs, 1, JwtConfig.JWT_TOKEN_NAME, JwtConfig.JWT_TOKEN_EXP_DATE_NAME);
+        await jsRuntime.InvokeVoidAsync("SESSION_FUNCTIONS.run",
+            NavigationManager.BaseUri, IdleTimeoutMs, 2, JwtConfig.JWT_TOKEN_NAME, JwtConfig.JWT_TOKEN_EXP_DATE_NAME);
     }
 }

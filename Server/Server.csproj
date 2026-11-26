@@ -4,14 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>46683bcf-33c8-4a5d-a484-d43a4ebdb47a</UserSecretsId>
+    <!-- <UserSecretsId>c7b79bee-70e8-461d-8904-c38eb6267f1f</UserSecretsId> -->
+    <!-- %APPDATA%\Microsoft\UserSecrets\58427d1f-3815-47a8-8e5a-8993a54510cd\ -->
+    <UserSecretsId>58427d1f-3815-47a8-8e5a-8993a54510cd</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NLog" Version="6.0.7" />
-    <PackageReference Include="NLog.Database" Version="6.0.3" />
-    <PackageReference Include="NLog.Extensions.Logging" Version="6.1.0" />
-    <PackageReference Include="NLog.Web.AspNetCore" Version="6.1.0" />
+    <PackageReference Include="Radzen.Blazor" Version="13.2.1" />
     <PackageReference Include="NewtonSoft.Json" Version="13.0.4" />
     <PackageReference Include="Resend" Version="0.2.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />

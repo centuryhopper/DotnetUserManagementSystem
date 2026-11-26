@@ -1,21 +1,62 @@
 @page "/roles"
-@* @using Client.DummyTests *@
-@using Client.Models
+@using System.Text.Json
 @using Client.Services
-@using HandyBlazorComponents.Models
-
+@using Radzen
+@using Radzen.Blazor
+@using static Shared.Models.ServiceResponses
 @attribute [Authorize(Roles = Shared.Constants.ADMIN)]
 
 <div class="text-center m-5">
     <h2><b>All Roles</b></h2>
 </div>
 <hr />
-<div class="text-center overflow-auto m-3">
+<div class="m-3">
     @if (doneLoadingLst)
     {
-        <CascadingValue Name="HandyGridState" Value="rolesGridStateService" IsFixed="true">
-            <DynamicHandyGrid TItem="RoleDTO" TEntity="RolesGridEntity" Items="Items" />
-        </CascadingValue>
+        <RadzenDataGrid @ref="grid" TItem="RoleDTO" Data="@roles" AllowPaging="true" PageSize="5" AllowSorting="true"
+                        EditMode="DataGridEditMode.Single" RowCreate="@OnCreateRow" RowUpdate="@OnUpdateRow">
+            <HeaderTemplate>
+                <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add New Role" Click="@InsertRow"
+                              Disabled="@(roleToInsert != null || roleToUpdate != null)" />
+            </HeaderTemplate>
+            <Columns>
+                @* Id is hidden, same as before. Add more columns here if RoleDTO has other fields. *@
+
+                <RadzenDataGridColumn Property="@nameof(RoleDTO.RoleName)" Title="Role Name">
+                    <EditTemplate Context="role">
+                        <RadzenTextBox @bind-Value="role.RoleName" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn Property="@nameof(RoleDTO.IsActive)" Title="Active" TextAlign="TextAlign.Center"
+                                      Width="120px">
+                    <Template Context="role">
+                        <RadzenCheckBox Value="@role.IsActive" Disabled="true" />
+                    </Template>
+                    <EditTemplate Context="role">
+                        <RadzenCheckBox @bind-Value="role.IsActive" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn Title="Actions" Sortable="false" Filterable="false" TextAlign="TextAlign.Right"
+                                      Width="140px">
+                    <Template Context="role">
+                        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                                      Size="ButtonSize.Medium" Click="@(() => EditRow(role))" @onclick:stopPropagation="true"
+                                      Disabled="@(roleToInsert != null || roleToUpdate != null)" />
+                        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat"
+                                      Size="ButtonSize.Medium" Class="ms-1" Click="@(() => DeleteRow(role))"
+                                      @onclick:stopPropagation="true" Disabled="@(roleToInsert != null || roleToUpdate != null)" />
+                    </Template>
+                    <EditTemplate Context="role">
+                        <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat"
+                                      Size="ButtonSize.Medium" Click="@(() => SaveRow(role))" />
+                        <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                                      Size="ButtonSize.Medium" Class="ms-1" Click="@(() => CancelEdit(role))" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
     }
     else
     {
@@ -27,112 +68,135 @@
     }
 </div>
 
-<HandyToast @ref="handyToast" Title="Success" Message="Your operation completed successfully."
-    ToastType="HandyToastType.SUCCESS" Duration="5" />
+
 
 @code {
     private bool doneLoadingLst = false;
-    private HttpClient httpClient { get; set; }
-    private RolesGridStateService rolesGridStateService = default!;
-    private HandyToast handyToast = default!;
-    List<RolesGridEntity> Items = [];
+    private HttpClient httpClient { get; set; } = default!;
 
+    private RadzenDataGrid<RoleDTO> grid = default!;
+    private List<RoleDTO> roles = [];
+
+    private RoleDTO? roleToInsert;
+    private RoleDTO? roleToUpdate;
+    private RoleDTO? backup; // copy of the row being edited, restored on cancel/failure
 
     protected override async Task OnInitializedAsync()
     {
         httpClient = httpClientFactory.CreateClient(Constants.HTTP_CLIENT);
-        Items = (await
-        httpClient.GetFromJsonAsync<IEnumerable<RoleDTO>>("api/Roles/get-roles")).Select(p => new RolesGridEntity(Object:
-        p)).OrderBy(p => p.Object.Id).ToList();
-        rolesGridStateService = new(
-        Items: Items,
-        PageSize: 5,
-        ReadonlyColumns: [nameof(RoleDTO.Id)],
-        ColumnsToHide: [nameof(RoleDTO.Id)],
-        IsReadonly: false,
-        AddNewItemsText: "Add New Roles",
-        ShowRowIndex: false,
-        ShowFilters: false,
-        EditModeFragments: [
-        new HandyNamedRenderFragment<RolesGridEntity>(
-Name: nameof(RoleDTO.IsActive),
-Fragment: o => @<HandyCheckbox TItem="RoleDTO" Item="o.Object" ColumnName="@(nameof(RoleDTO.IsActive))" />),
-],
-ViewModeFragments: [
-new HandyNamedRenderFragment<RolesGridEntity>(
-Name: nameof(RoleDTO.IsActive),
-Fragment: o => @<input type="checkbox" @bind="o.Object.IsActive" disabled="disabled">),
-],
-OnCreate: async (items) =>
-{
-    var list = items.ToList();
+        await LoadRoles();
+        doneLoadingLst = true;
+    }
 
-    // apply changes here to db in real-world scenario as well
-    var response = await httpClient.PostAsJsonAsync("api/Roles/add-roles", list.Select(e => e.Object));
-
-    var responseContents = await response.Content.ReadFromJsonAsync<IEnumerable<HandyGeneralResponse>>();
-
-    foreach (var responseContent in responseContents)
+    private async Task LoadRoles()
     {
-        if (!responseContent.Flag)
+        roles = ((await httpClient.GetFromJsonAsync<List<RoleDTO>>("api/Roles/get-roles")) ?? [])
+            .OrderBy(r => r.Id)
+            .ToList();
+    }
+
+    // ---------- row actions ----------
+
+    private async Task InsertRow()
+    {
+        roleToInsert = new RoleDTO { IsActive = true };
+        await grid.InsertRow(roleToInsert);
+    }
+
+    private async Task EditRow(RoleDTO role)
+    {
+        backup = Clone(role);
+        roleToUpdate = role;
+        await grid.EditRow(role);
+    }
+
+    // Commits the edit; Radzen then fires RowCreate (new row) or RowUpdate (existing row).
+    private async Task SaveRow(RoleDTO role) => await grid.UpdateRow(role);
+
+    private async Task CancelEdit(RoleDTO role)
+    {
+        grid.CancelEditRow(role);
+
+        if (role != roleToInsert && backup is not null)
         {
-            _ = handyToast.ShowToastAsync("Error", responseContent.Message, HandyToastType.ERROR);
+            var idx = roles.IndexOf(role);
+            if (idx >= 0) roles[idx] = backup;
+        }
+
+        ResetEditState();
+        await grid.Reload();
+    }
+
+    private async Task DeleteRow(RoleDTO role)
+    {
+        var response = await httpClient.DeleteAsync($"api/Roles/delete-role/{role.Id}");
+        var responseContent = await response.Content.ReadFromJsonAsync<GeneralResponse>();
+
+        if (responseContent is null || !responseContent.Flag)
+        {
+            await toastService.Error("Error", responseContent?.Message ?? "Delete failed.");
+            return;
+        }
+
+        roles.Remove(role);
+        await grid.Reload();
+        await toastService.Success("Success", responseContent.Message);
+    }
+
+    // ---------- grid events ----------
+
+    private async Task OnCreateRow(RoleDTO role)
+    {
+        // the API takes a list, so send a single-item list
+        var response = await httpClient.PostAsJsonAsync("api/Roles/add-roles", new[] { role });
+        var responseContents = (await response.Content.ReadFromJsonAsync<List<GeneralResponse>>()) ?? [];
+
+        foreach (var rc in responseContents)
+        {
+            if (rc.Flag)
+                await toastService.Success("Success", rc.Message);
+            else
+                await toastService.Error("Error", rc.Message);
+        }
+
+        // add-roles doesn't return the new Id, so reload from the server.
+        // Otherwise the new row has Id = 0 and editing/deleting it would fail.
+        ResetEditState();
+        await LoadRoles();
+        await grid.Reload();
+    }
+
+    private async Task OnUpdateRow(RoleDTO role)
+    {
+        var response = await httpClient.PatchAsJsonAsync("api/Roles/edit-role", role);
+        var responseContent = await response.Content.ReadFromJsonAsync<GeneralResponse>();
+
+        if (responseContent is null || !responseContent.Flag)
+        {
+            await toastService.Error("Error", responseContent?.Message ?? "Update failed.");
+
+            // roll the row back to what it was before editing
+            var idx = roles.IndexOf(role);
+            if (idx >= 0 && backup is not null) roles[idx] = backup;
         }
         else
         {
-
-            _ = handyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
+            await toastService.Success("Success", responseContent.Message);
         }
+
+        ResetEditState();
+        await grid.Reload();
     }
 
-    // NavigationManager.NavigateTo("/roles", forceLoad: true);
-    Items.AddRange(list);
-    StateHasChanged();
-},
-OnDelete: async (item) =>
-{
-    // TODO: change get primary key to object type instead of int
-    var val = Items.FirstOrDefault(i => i.Object.RoleName == item.Object.RoleName);
-    var response = await httpClient.DeleteAsync($"api/Roles/delete-role/{item.Object.Id}");
-    var responseContent = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
-    if (!responseContent.Flag)
+    // ---------- helpers ----------
+
+    private void ResetEditState()
     {
-        _ = handyToast.ShowToastAsync("Error", responseContent.Message, HandyToastType.ERROR);
-    }
-    else
-    {
-        Items.Remove(val);
-        StateHasChanged();
-        _ = handyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
-        // NavigationManager.NavigateTo("/roles", forceLoad: true);
-    }
-},
-OnUpdate: async (item) =>
-{
-    var response = await httpClient.PatchAsJsonAsync("api/Roles/edit-role", item.Object);
-    var responseContent = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
-    if (!responseContent.Flag)
-    {
-        _ = handyToast.ShowToastAsync("Error", responseContent.Message, HandyToastType.ERROR);
-    }
-    else
-    {
-        _ = handyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
-        // NavigationManager.NavigateTo("/roles", forceLoad: true);
-        var idx = Items.FindIndex(i => i.Object.Id == item.Object.Id);
-        Items[idx] = item;
-        StateHasChanged();
-    }
-});
-
-        doneLoadingLst = true;
-
-        var authState = await ((ApiAuthenticationStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        //userId = Convert.ToInt32(user.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+        roleToInsert = null;
+        roleToUpdate = null;
+        backup = null;
     }
 
-
-
+    private static RoleDTO Clone(RoleDTO role) =>
+        JsonConvert.DeserializeObject<RoleDTO>(JsonConvert.SerializeObject(role))!;
 }

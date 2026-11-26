@@ -1,20 +1,73 @@
 @page "/applications"
 
-@using Client.Models
 @using Client.Services
-@using HandyBlazorComponents.Models
+@using Radzen
+@using Radzen.Blazor
+@using static Shared.Models.ServiceResponses
 @attribute [Authorize(Roles = Shared.Constants.ADMIN)]
 
 <div class="text-center m-5">
     <h2><b>All Applications</b></h2>
 </div>
 <hr />
-<div class="text-center overflow-auto m-3">
-    @if (doneLoadingLst)
+<div class="m-3">
+    @if (doneLoadingLst && jsReady)
     {
-        <CascadingValue Name="HandyGridState" Value="applicationsGridStateService" IsFixed="true">
-            <DynamicHandyGrid TItem="ApplicationDTO" TEntity="ApplicationsGridEntity" Items="Items" />
-        </CascadingValue>
+        <RadzenDataGrid @ref="grid" TItem="ApplicationDTO" Data="@applications" AllowPaging="true" PageSize="5"
+                        AllowSorting="true" EditMode="DataGridEditMode.Single" RowCreate="@OnCreateRow" RowUpdate="@OnUpdateRow">
+            <HeaderTemplate>
+                <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Add New Application"
+                              Click="@InsertRow" Disabled="@(appToInsert != null || appToUpdate != null)" />
+            </HeaderTemplate>
+            <Columns>
+                @* Applicationid is hidden, same as before. Add more columns here if ApplicationDTO has other fields. *@
+
+                <RadzenDataGridColumn Property="@nameof(ApplicationDTO.Applicationname)" Title="Application Name">
+                    <EditTemplate Context="app">
+                        <RadzenTextBox @bind-Value="app.Applicationname" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn Property="@nameof(ApplicationDTO.Userid)" Title="User">
+                    <Template Context="app">
+                        @(users.FirstOrDefault(u => u.Id == app.Userid)?.Username ?? "n/a")
+                    </Template>
+                    <EditTemplate Context="app">
+                        <RadzenDropDown @bind-Value="app.Userid" Data="@users" TextProperty="@nameof(UserDTO.Username)"
+                                        ValueProperty="@nameof(UserDTO.Id)" AllowClear="true" AllowFiltering="true"
+                                        Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn Property="@nameof(ApplicationDTO.Roleid)" Title="Role">
+                    <Template Context="app">
+                        @(roles.FirstOrDefault(r => r.Id == app.Roleid)?.RoleName ?? "n/a")
+                    </Template>
+                    <EditTemplate Context="app">
+                        <RadzenDropDown @bind-Value="app.Roleid" Data="@roles" TextProperty="@nameof(RoleDTO.RoleName)"
+                                        ValueProperty="@nameof(RoleDTO.Id)" AllowClear="true" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn Title="Actions" Sortable="false" Filterable="false" TextAlign="TextAlign.Right"
+                                      Width="140px">
+                    <Template Context="app">
+                        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                                      Size="ButtonSize.Medium" Click="@(() => EditRow(app))" @onclick:stopPropagation="true"
+                                      Disabled="@(appToInsert != null || appToUpdate != null)" />
+                        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat"
+                                      Size="ButtonSize.Medium" Class="ms-1" Click="@(() => DeleteRow(app))"
+                                      @onclick:stopPropagation="true" Disabled="@(appToInsert != null || appToUpdate != null)" />
+                    </Template>
+                    <EditTemplate Context="app">
+                        <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat"
+                                      Size="ButtonSize.Medium" Click="@(() => SaveRow(app))" />
+                        <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                                      Size="ButtonSize.Medium" Class="ms-1" Click="@(() => CancelEdit(app))" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
     }
     else
     {
@@ -26,136 +79,153 @@
     }
 </div>
 
-<HandyToast @ref="handyToast" Title="Success" Message="Your operation completed successfully."
-    ToastType="HandyToastType.SUCCESS" Duration="5" />
-
-<StackedHandyToast @ref="stackedHandyToast" Title="Success" Message="Your operation completed successfully."
-    ToastType="HandyToastType.SUCCESS" Duration="5" Position="HandyToastPosition.CENTER_ALIGN" />
 
 @code {
     private bool doneLoadingLst = false;
-    private HttpClient httpClient { get; set; }
-    private ApplicationsGridStateService applicationsGridStateService = default!;
-    private HandyToast handyToast = default!;
-    private StackedHandyToast stackedHandyToast = default!;
-    List<ApplicationsGridEntity> Items = [];
+    private bool jsReady = false;
+
+    private HttpClient httpClient { get; set; } = default!;
+
+    private RadzenDataGrid<ApplicationDTO> grid = default!;
+    private List<ApplicationDTO> applications = [];
+    private List<UserDTO> users = [];
+    private List<RoleDTO> roles = [];
+
+    private ApplicationDTO? appToInsert;
+    private ApplicationDTO? appToUpdate;
+    private ApplicationDTO? backup; // copy of the row being edited, restored on cancel/failure
 
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            jsReady = true;
+            StateHasChanged();
+        }
+    }
     protected override async Task OnInitializedAsync()
     {
         httpClient = httpClientFactory.CreateClient(Constants.HTTP_CLIENT);
 
-        var users = (await httpClient.GetFromJsonAsync<IEnumerable<UserDTO>>("api/Users/get-users")).Select(u => new
-        HandyNamedTuple(Text: u.Username, Value: u.Id)).ToList();
-
-        var roles = (await
-        httpClient.GetFromJsonAsync<IEnumerable<RoleDTO>>("api/Roles/get-roles")).Select(r => new HandyNamedTuple(Text:
-        r.RoleName, Value: r.Id)).ToList();
-
-        Items = (await
-        httpClient.GetFromJsonAsync<IEnumerable<ApplicationDTO>>("api/Applications/get-applications")).Select(p => new
-        ApplicationsGridEntity(Object: p)).OrderBy(p => p.Object.Applicationid).ToList();
-        applicationsGridStateService = new(
-        Items: Items,
-        PageSize: 5,
-        ReadonlyColumns: [nameof(ApplicationDTO.Applicationid)],
-        ColumnsToHide: [nameof(ApplicationDTO.Applicationid)],
-        IsReadonly: false,
-        AddNewItemsText: "Add New Applications",
-        ShowRowIndex: false,
-        ShowFilters: false,
-        EditModeFragments: [
-        new HandyNamedRenderFragment<ApplicationsGridEntity>(
-Name: nameof(ApplicationDTO.Userid),
-Fragment: o => @<HandyDropdown TItem="ApplicationDTO" Item="o.Object" ColumnName="@(nameof(ApplicationDTO.Userid))"
-            Options="@(users.Prepend(new(Text: "", Value: "")).ToList())" />),
-        new HandyNamedRenderFragment<ApplicationsGridEntity>(
-        Name: nameof(ApplicationDTO.Roleid),
-        Fragment: o => @<HandyDropdown TItem="ApplicationDTO" Item="o.Object" ColumnName="@(nameof(ApplicationDTO.Roleid))"
-    Options="@(roles.Prepend(new(Text: "", Value: "")).ToList())" />),
-],
-ViewModeFragments: [
-new HandyNamedRenderFragment<ApplicationsGridEntity>(
-Name: nameof(ApplicationDTO.Userid),
-Fragment: o => @<span>@(users.FirstOrDefault(u => u.Value == o.Object.Userid)?.Text ?? "n/a")</span>),
-        new HandyNamedRenderFragment<ApplicationsGridEntity>(
-        Name: nameof(ApplicationDTO.Roleid),
-        Fragment: o => @<span>@(roles.FirstOrDefault(r => r.Value == o.Object.Roleid)?.Text ?? "n/a")</span>),
-],
-OnCreate: async (items) =>
-{
-    var list = items.ToList();
-
-    // apply changes here to db in real-world scenario as well
-    var response = await httpClient.PostAsJsonAsync("api/Applications/add-applications", list.Select(e => e.Object));
-
-    var responseContents = await response.Content.ReadFromJsonAsync<IEnumerable<HandyGeneralResponseWithPayload>>();
-
-    // TODO: do this kind of style for the other UMS tables logic as well
-    if (responseContents.Any(r => !r.Flag))
-    {
-        var badResponses = responseContents.Where(r => !r.Flag);
-        badResponses.ToList().ForEach(br => {
-            _ = stackedHandyToast.ShowToastAsync("Error", br.Message, HandyToastType.ERROR);
-        });
-        return;
-    }
-
-    foreach (var (i, responseContent) in responseContents.Select((r, i) => (i, r)))
-    {
-        //Console.WriteLine("payload: " + responseContent.Payload);
-        list[i].Object.Applicationid = int.Parse(responseContent.Payload);
-        _ = stackedHandyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
-    }
-
-    Items.AddRange(list);
-    //foreach (var val in Items)
-    //{
-    //    Console.WriteLine(val.Object.Applicationid);
-    //}
-    StateHasChanged();
-},
-OnDelete: async (item) =>
-{
-    var val = Items.FirstOrDefault(i => i.Object.Applicationid == item.Object.Applicationid);
-    var response = await httpClient.DeleteAsync($"api/Applications/delete-application/{item.Object.Applicationid}");
-    var responseContent = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
-    if (!responseContent.Flag)
-    {
-        _ = handyToast.ShowToastAsync("Error", responseContent.Message, HandyToastType.ERROR);
-    }
-    else
-    {
-        Items.Remove(val);
-        StateHasChanged();
-        _ = handyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
-    }
-},
-OnUpdate: async (item) =>
-{
-    var response = await httpClient.PatchAsJsonAsync("api/Applications/edit-application", item.Object);
-    var responseContent = await response.Content.ReadFromJsonAsync<HandyGeneralResponseWithPayload>();
-    if (!responseContent.Flag)
-    {
-        _ = handyToast.ShowToastAsync("Error", responseContent.Message, HandyToastType.ERROR);
-    }
-    else
-    {
-        _ = handyToast.ShowToastAsync("Success", responseContent.Message, HandyToastType.SUCCESS);
-        var idx = Items.FindIndex(i => i.Object.Applicationid == item.Object.Applicationid);
-        Items[idx] = item;
-        StateHasChanged();
-    }
-});
+        users = (await httpClient.GetFromJsonAsync<List<UserDTO>>("api/Users/get-users")) ?? [];
+        roles = (await httpClient.GetFromJsonAsync<List<RoleDTO>>("api/Roles/get-roles")) ?? [];
+        applications = ((await httpClient.GetFromJsonAsync<List<ApplicationDTO>>("api/Applications/get-applications")) ?? [])
+            .OrderBy(a => a.Applicationid)
+            .ToList();
 
         doneLoadingLst = true;
-
-        var authState = await ((ApiAuthenticationStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        // userId = Convert.ToInt32(user.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
     }
 
+    // ---------- row actions ----------
+
+    private async Task InsertRow()
+    {
+        appToInsert = new ApplicationDTO();
+        await grid.InsertRow(appToInsert);
+    }
+
+    private async Task EditRow(ApplicationDTO app)
+    {
+        backup = Clone(app);
+        appToUpdate = app;
+        await grid.EditRow(app);
+    }
+
+    // Commits the edit; Radzen then fires RowCreate (new row) or RowUpdate (existing row).
+    private async Task SaveRow(ApplicationDTO app) => await grid.UpdateRow(app);
+
+    private async Task CancelEdit(ApplicationDTO app)
+    {
+        grid.CancelEditRow(app);
+
+        if (app != appToInsert && backup is not null)
+        {
+            var idx = applications.IndexOf(app);
+            if (idx >= 0) applications[idx] = backup;
+        }
+
+        ResetEditState();
+        await grid.Reload();
+    }
+
+    private async Task DeleteRow(ApplicationDTO app)
+    {
+        var response = await httpClient.DeleteAsync($"api/Applications/delete-application/{app.Applicationid}");
+        var responseContent = await response.Content.ReadFromJsonAsync<GeneralResponse>();
+
+        if (responseContent is null || !responseContent.Flag)
+        {
+            await toastService.Error("Error", responseContent?.Message ?? "Delete failed.");
+            return;
+        }
+
+        applications.Remove(app);
+        await grid.Reload();
+        await toastService.Success("Success", responseContent.Message);
+    }
+
+    // ---------- grid events ----------
+
+    private async Task OnCreateRow(ApplicationDTO app)
+    {
+        // the API takes a list, so send a single-item list
+        var response = await httpClient.PostAsJsonAsync("api/Applications/add-applications", new[] { app });
+        var responseContents = (await response.Content
+            .ReadFromJsonAsync<List<GeneralResponseWithPayload>>()) ?? [];
+
+        if (responseContents.Count == 0 || responseContents.Any(r => !r.Flag))
+        {
+            foreach (var br in responseContents.Where(r => !r.Flag))
+            {
+                await toastService.Error("Error", br.Message);
+            }
+            ResetEditState();
+            await grid.Reload(); // drops the unsaved row
+            return;
+        }
+
+        var result = responseContents[0];
+        app.Applicationid = int.Parse(result.Payload);
+        applications.Add(app);
+        await toastService.Success("Success", result.Message);
 
 
+        ResetEditState();
+        await grid.Reload();
+    }
+
+    private async Task OnUpdateRow(ApplicationDTO app)
+    {
+        var response = await httpClient.PatchAsJsonAsync("api/Applications/edit-application", app);
+        var responseContent = await response.Content.ReadFromJsonAsync<GeneralResponseWithPayload>();
+
+        if (responseContent is null || !responseContent.Flag)
+        {
+            await toastService.Error("Error", responseContent?.Message ?? "Update failed.");
+
+            // roll the row back to what it was before editing
+            var idx = applications.IndexOf(app);
+            if (idx >= 0 && backup is not null) applications[idx] = backup;
+        }
+        else
+        {
+            await toastService.Success("Success", responseContent.Message);
+        }
+
+        ResetEditState();
+        await grid.Reload();
+    }
+
+    // ---------- helpers ----------
+
+    private void ResetEditState()
+    {
+        appToInsert = null;
+        appToUpdate = null;
+        backup = null;
+    }
+
+    private static ApplicationDTO Clone(ApplicationDTO app) =>
+        JsonConvert.DeserializeObject<ApplicationDTO>(JsonConvert.SerializeObject(app))!;
 }

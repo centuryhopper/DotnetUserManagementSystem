@@ -1,4 +1,5 @@
 @page "/confirm-email"
+@using static Shared.Models.ServiceResponses
 
 @if (isConfirmationSuccess)
 {
@@ -33,7 +34,7 @@ else
             UserId = userId,
         });
 
-        var responseContent = await response.Content.ReadFromJsonAsync<HandyGeneralResponse>();
+        var responseContent = await response.Content.ReadFromJsonAsync<GeneralResponse>();
         isConfirmationSuccess = responseContent?.Flag ?? false;
 
     }
